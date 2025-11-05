@@ -1,0 +1,40 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { supabase } from '../../lib/supabase' // relativ: src/app/leads -> src/lib
+
+export default function LeadsPage() {
+  const [leads, setLeads] = useState<any[]>([])
+
+  useEffect(() => {
+    const loadLeads = async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Fehler beim Laden:', error)
+      } else {
+        setLeads(data || [])
+      }
+    }
+    loadLeads()
+  }, [])
+
+  return (
+    <div style={{ padding: 24, fontFamily: 'system-ui' }}>
+      <h1>📋 Lead Übersicht</h1>
+      {leads.length === 0 ? (
+        <p>Keine Leads gefunden.</p>
+      ) : (
+        <ul>
+          {leads.map((lead) => (
+            <li key={lead.id}>
+              <strong>{lead.company_name}</strong> – {lead.region} ({lead.score})
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
