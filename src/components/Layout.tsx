@@ -22,24 +22,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   );
 }
 
-
 */
 
+'use client';
 
-import './globals.css';
-import Layout from '@/components/Layout';
+import Navbar from './Navbar';
 
-export const metadata = {
-  title: 'Nordstein Orbit',
-  description: 'Vertriebssystem mit Supabase und Next.js',
-};
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de">
-      <body>
-        <Layout>{children}</Layout>
-      </body>
-    </html>
+    <div className="min-h-screen bg-white relative">
+      {/* Header-Gradient */}
+      <div className="bg-gradient-to-b from-[#451a3d] to-white h-[400px] w-full absolute top-0 left-0 z-0" />
+
+      <div className="relative z-10">
+        <Navbar />
+        <main className="pt-6">{children}</main>
+      </div>
+    </div>
   );
 }
