@@ -30,9 +30,9 @@ import Navbar from './Navbar';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-white relative">
+    <div className="min-h-screen bg-black relative">
       {/* Header-Gradient */}
-      <div className="bg-gradient-to-b from-[#451a3d] to-white h-[400px] w-full absolute top-0 left-0 z-0" />
+      <div className="bg-gradient-to-b from-[#451a3d] to-black h-[400px] w-full absolute top-0 left-0 z-0" />
 
       <div className="relative z-10">
         <Navbar />

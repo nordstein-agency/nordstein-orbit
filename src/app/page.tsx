@@ -1,12 +1,5 @@
-import Link from 'next/link';
+import { redirect } from "next/navigation";
 
-export default function HomePage() {
-  return (
-    <main style={{ padding: 24 }}>
-      <h1>Nordstein Orbit</h1>
-      <p>It works 🎉</p>
-      <p><Link href="/ping">→ Zur Ping-Seite</Link></p>
-      <p><Link href="/leads">→ Zur Leads-Seite</Link></p>
-    </main>
-  );
+export default function Home() {
+  redirect("/login");
 }

@@ -1,33 +1,5 @@
-/*
-
 import './globals.css';
-
-export const metadata = {
-  title: 'Nordstein Orbit',
-  description: 'Dashboard & Vertriebssystem von Nordstein',
-  icons: {
-    icon: '/favicon.png?v=3',     // dein Nordstein-Icon + Cache-Busting
-    shortcut: '/favicon.png?v=3',
-    apple: '/favicon.png?v=3',
-  },
-};
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="de">
-      <body style={{ fontFamily: 'Inter, system-ui, sans-serif', background: '#fff', color: '#111', margin: 0 }}>
-        {children}
-      </body>
-    </html>
-  );
-}
-
-
-*/
-
-
-import './globals.css';
-import Layout from '@/components/Layout';
+import Navbar from '@/components/Navbar';
 
 export const metadata = {
   title: 'Nordstein Orbit',
@@ -37,8 +9,17 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="de">
-      <body>
-        <Layout>{children}</Layout>
+      <body className="min-h-screen bg-red-500 relative overflow-x-hidden">
+
+        {/* 💜 Orbit-Gradient (FEST FIXIERT, IMMER SICHTBAR!) */}
+        <div className="fixed inset-0 bg-gradient-to-b from-[#451a3d] to-black -z-10" />
+
+        {/* Inhalt */}
+        <div className="relative z-20">
+          <Navbar />
+          <main className="pt-6">{children}</main>
+        </div>
+
       </body>
     </html>
   );

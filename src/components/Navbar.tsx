@@ -93,7 +93,7 @@ export default function Navbar() {
 
     if (userRole === ROLE_FULL_ACCESS) {
       return (
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-8 ">
           <Link href="/leads" className="nav-link">
             Leads
           </Link>
