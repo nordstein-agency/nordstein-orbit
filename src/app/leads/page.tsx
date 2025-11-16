@@ -1,38 +1,24 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-// Wenn dieser Import rot ist, nimm die RELATIVE Variante darunter.
-import { supabase } from '@/lib/supabase/browser';
-//import {adminClient} from "@/lib/supabase/supabaseAdminClient";
-//import Layout from '@/components/Layout';
-// Alternative (nur falls oben rot ist):
-// import { supabase } from '../../lib/supabase/browser';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase/browser";
 
 export default function LeadsPage() {
-  const [text, setText] = useState('…prüfe Supabase…');
+  const router = useRouter();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data, error }) => {
-      console.log('Supabase getUser()', { data, error });
-      if (error) {
-        setText('Fehler: ' + error.message);
-      } else if (data?.user) {
-        setText('Eingeloggt als: ' + (data.user.email || data.user.id));
-      } else {
-        setText('Kein User eingeloggt');
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        router.replace("/login"); // ← sofort redirect
       }
-    }).catch((e) => {
-      setText('Unerwarteter Fehler: ' + String(e?.message || e));
     });
   }, []);
 
   return (
-    //<Layout>
-    <main style={{ padding: 24 }}>
-      <h1>Leads</h1>
-      <p>{text}</p>
-      <p style={{ marginTop: 12, opacity: 0.7 }}>(Konsole öffnen für Details)</p>
+    <main className="min-h-screen p-6 text-white">
+      <h1 className="text-xl font-semibold mb-4">Leads</h1>
+      <p>Wird geladen…</p>
     </main>
-    //</Layout>
   );
 }

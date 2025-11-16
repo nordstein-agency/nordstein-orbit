@@ -8,42 +8,31 @@ body {
   margin: 0;
   padding: 0;
   font-family: 'Inter Tight', sans-serif;
-
 }
 
-/* Navbar-Link Style */
-.nav-link {
+.orbit-nav-link {
   color: #ffffff;
-  text-transform: uppercase;
-  text-decoration: none;
-  font-weight: 700;
-  font-size: 20px;
-  font-family: 'Inter Tight', sans-serif;
-  transition: color 0.2s ease;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  transition: all 0.25s ease;
+  position: relative;
 }
 
-.nav-link:hover,
-.nav-link:focus,
-.nav-link:active {
-  color: #e6ded3;
+.orbit-nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0%;
+  height: 2px;
+  background: #c995c1;
+  transition: width 0.3s ease;
 }
 
-.nav-link:visited {
-  color: #f2ebeb;
+.orbit-nav-link:hover {
+  color: #e6c7df;
 }
 
-/* Einfache Fade-in Animation */
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.6s ease-out;
+.orbit-nav-link:hover::after {
+  width: 100%;
 }
