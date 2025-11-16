@@ -7,33 +7,37 @@ export async function middleware(req: NextRequest) {
     request: { headers: req.headers },
   });
 
+  // Supabase Client
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name) => req.cookies.get(name)?.value,
-        set: (name, value, options) => {
+        get: (name: string) => req.cookies.get(name)?.value,
+        set: (name: string, value: string, options: any) => {
           res.cookies.set(name, value, options);
         },
-        remove: (name, options) => {
+        remove: (name: string, options: any) => {
           res.cookies.set(name, "", { ...options, maxAge: 0 });
         },
       },
     }
   );
 
-  const PUBLIC_PATHS = ["/login"];
+  const PUBLIC_ROUTES = ["/login"];
   const path = req.nextUrl.pathname;
 
-  // Supabase AUTH Requests IMMER durchlassen
-  if (path.startsWith("/auth")) return res;
-
-  // Öffentliche Seiten
-  if (PUBLIC_PATHS.some((route) => path.startsWith(route))) {
+  // Auth-Realm freigeben
+  if (path.startsWith("/auth")) {
     return res;
   }
 
+  // Public routes
+  if (PUBLIC_ROUTES.includes(path)) {
+    return res;
+  }
+
+  // Check auth
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -47,6 +51,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next|api|auth|favicon.ico|.*\\..*).*)",
+    // blockiere ALLES außer _next, static files, api, auth
+    "/((?!api|_next|auth|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)",
   ],
 };
