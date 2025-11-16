@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useUser } from "@/hooks/useUser";
+import { useOrbitRole } from "@/hooks/useOrbitRole";
 
 export default function Navbar() {
   const user = useUser();
+  const role = useOrbitRole();
+
 
   return (
     <nav className="w-full fixed top-0 left-0 z-50 backdrop-blur-md bg-black/20 border-b border-white/10">
@@ -23,6 +26,9 @@ export default function Navbar() {
           <div className="flex gap-10">
             <Link href="/dashboard" className="orbit-nav-link">Dashboard</Link>
             <Link href="/leads" className="orbit-nav-link">Leads</Link>
+            <Link href="/academy" className="orbit-nav-link">Academy</Link>
+
+            
           </div>
         ) : (
           <div />

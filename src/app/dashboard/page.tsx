@@ -25,7 +25,7 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
 
   return (
-    <main className="pt-24 px-6 pb-20 min-h-screen text-white">
+    <main className="pt-16 px-6 pb-20 min-h-screen text-white">
 
       {/* --- Begrüßung --- */}
       <section className="mb-10 animate-fade-in">

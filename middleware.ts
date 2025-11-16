@@ -3,61 +3,59 @@ import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(req: NextRequest) {
-  // Clone request headers
-  const requestHeaders = new Headers(req.headers);
+  // Einheitlicher Response
+  const res = NextResponse.next({
+    request: {
+      headers: req.headers
+    }
+  });
 
-  // Dummy response (not returned)
-  const response = NextResponse.next();
-
-  // Cookie store for Supabase
-  const cookieStore = {
-    get(name: string) {
-      return req.cookies.get(name)?.value;
-    },
-    set(name: string, value: string, options?: any) {
-      response.cookies.set(name, value, options);
-    },
-    remove(name: string, options?: any) {
-      response.cookies.set(name, "", { ...options, maxAge: 0 });
-    },
-  };
-
+  // Supabase Server Client korrekt initialisieren
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: cookieStore }
+    {
+      cookies: {
+        get(name: string) {
+          return req.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          res.cookies.set(name, value, options);
+        },
+        remove(name: string, options: any) {
+          res.cookies.set(name, "", { ...options, maxAge: 0 });
+        },
+      },
+    }
   );
 
-  const url = req.nextUrl;
-  const path = url.pathname;
+  const path = req.nextUrl.pathname;
 
-  // Allowed paths
+  // öffentliche Routen
   if (
-    path.startsWith("/_next") ||
-    path.startsWith("/favicon") ||
-    path.match(/\.(.*)$/)
+    path.startsWith("/login") ||
+    path.startsWith("/auth") ||
+    path.startsWith("/api/public")
   ) {
-    return response;
+    return res;
   }
 
-  if (path.startsWith("/auth")) return response;
-  if (path === "/login" || path.startsWith("/login?")) return response;
-  if (path.startsWith("/_next/data")) return response;
-
-  // Write cookies BEFORE creating final response
+  // Session prüfen
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // PROTECT ROUTES
   if (!session) {
-    const redirectUrl = new URL("/login", req.url);
+    const redirectUrl = req.nextUrl.clone();
+    redirectUrl.pathname = "/login";
     return NextResponse.redirect(redirectUrl);
   }
 
-  return response;
+  return res;
 }
 
 export const config = {
-  matcher: ["/((?!_next|.*\\..*|favicon.ico|robots.txt|sitemap.xml).*)"],
+  matcher: [
+    "/((?!_next|static|.*\\..*|favicon.ico).*)",
+  ],
 };
