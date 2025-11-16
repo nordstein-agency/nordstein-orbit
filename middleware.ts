@@ -7,37 +7,52 @@ export async function middleware(req: NextRequest) {
     request: { headers: req.headers },
   });
 
-  // Supabase Client
+  // Cookie wrapper, kompatibel zu Supabase CookieMethodsServer
+  const cookieStore = {
+    get(name: string) {
+      return req.cookies.get(name)?.value;
+    },
+    set(name: string, value: string, options?: any) {
+      res.cookies.set(name, value, options);
+    },
+    remove(name: string, options?: any) {
+      res.cookies.set(name, "", {
+        ...options,
+        maxAge: 0,
+      });
+    },
+  };
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookies: {
-        get: (name: string) => req.cookies.get(name)?.value,
-        set: (name: string, value: string, options: any) => {
-          res.cookies.set(name, value, options);
-        },
-        remove: (name: string, options: any) => {
-          res.cookies.set(name, "", { ...options, maxAge: 0 });
-        },
-      },
+      cookies: cookieStore,
     }
   );
 
-  const PUBLIC_ROUTES = ["/login"];
-  const path = req.nextUrl.pathname;
+  const url = req.nextUrl;
+  const path = url.pathname;
 
-  // Auth-Realm freigeben
-  if (path.startsWith("/auth")) {
+  // Static + next internals -> always allowed
+  if (
+    path.startsWith("/_next") ||
+    path.startsWith("/favicon") ||
+    path.match(/\.(.*)$/)
+  ) {
     return res;
   }
 
-  // Public routes
-  if (PUBLIC_ROUTES.includes(path)) {
-    return res;
-  }
+  // Allow Supabase auth
+  if (path.startsWith("/auth")) return res;
 
-  // Check auth
+  // Allow login (with params too)
+  if (path === "/login" || path.startsWith("/login?")) return res;
+
+  // Allow next data requests
+  if (path.startsWith("/_next/data")) return res;
+
+  // Check session
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -51,7 +66,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!login|auth|_next|api|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)",
+    "/((?!_next|.*\\..*|favicon.ico|robots.txt|sitemap.xml).*)",
   ],
 };
-
