@@ -3,25 +3,40 @@ import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(req: NextRequest) {
-  // Wichtig: Response klonen, NICHT next()
-  const res = NextResponse.next({
-    request: {
-      headers: req.headers,
-    },
-  });
+  const res = NextResponse.next();
 
-  // Supabase Client
+  // Detect Domain
+  const isProd = process.env.NODE_ENV === "production";
+  const domain = isProd ? "orbit.nordstein-agency.com" : "localhost";
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name: string) => req.cookies.get(name)?.value,
-        set: (name: string, value: string, options: any) => {
-          res.cookies.set(name, value, { ...options });
+        get(name: string) {
+          return req.cookies.get(name)?.value;
         },
-        remove: (name: string, options: any) => {
-          res.cookies.set(name, "", { ...options, maxAge: 0 });
+        set(name: string, value: string, options: any) {
+          res.cookies.set(name, value, {
+            path: "/",
+            httpOnly: true,
+            secure: true,
+            sameSite: "lax",
+            domain,
+            ...options,
+          });
+        },
+        remove(name: string, options: any) {
+          res.cookies.set(name, "", {
+            path: "/",
+            httpOnly: true,
+            secure: true,
+            sameSite: "lax",
+            maxAge: 0,
+            domain,
+            ...options,
+          });
         },
       },
     }
@@ -33,14 +48,13 @@ export async function middleware(req: NextRequest) {
 
   const path = req.nextUrl.pathname;
 
-  // öffentliche Route
-  const publicRoutes = ["/login"];
-
-  if (publicRoutes.some((route) => path.startsWith(route))) {
+  if (path.startsWith("/login")) {
+    if (session) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
     return res;
   }
 
-  // geschützte Routen
   if (!session) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
