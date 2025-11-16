@@ -1,19 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 import OrbitButton from "@/components/orbit/OrbitButton";
 import OrbitInput from "@/components/orbit/OrbitInput";
 import OrbitTextarea from "@/components/orbit/OrbitTextarea";
 
-export default function NewModulePage({ params }: any) {
+export default function NewModulePage({ params }: { params: Promise<{ slug: string }> }) {
+  // ❗ Next.js 16: params ist ein Promise → mit use() auflösen
+  const { slug } = use(params);
+
   const router = useRouter();
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+
+  const supabase = createSupabaseBrowserClient();
 
   const [courseId, setCourseId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -22,18 +23,19 @@ export default function NewModulePage({ params }: any) {
   const [description, setDescription] = useState("");
   const [position, setPosition] = useState<number>(1);
 
-  // Kurs ID laden
+  // Kurs laden
   useEffect(() => {
     async function loadCourse() {
+      // 1. Kurs-ID per Slug holen
       const { data: course } = await supabase
         .from("courses")
         .select("id")
-        .eq("slug", params.slug)
+        .eq("slug", slug)
         .single();
 
       if (course) setCourseId(course.id);
 
-      // Maximale Position laden
+      // 2. Letzte Position des Moduls holen
       const { data: modules } = await supabase
         .from("modules")
         .select("position")
@@ -47,8 +49,9 @@ export default function NewModulePage({ params }: any) {
     }
 
     loadCourse();
-  }, [params.slug]);
+  }, [slug]); // <-- ❗ jetzt korrekt
 
+  // Modul speichern
   async function createModule(e: any) {
     e.preventDefault();
     setLoading(true);
@@ -65,7 +68,7 @@ export default function NewModulePage({ params }: any) {
     if (error) {
       alert("Fehler: " + error.message);
     } else {
-      router.push(`/admin/academy/course/${params.slug}`);
+      router.push(`/admin/academy/course/${slug}`);
       router.refresh();
     }
   }
@@ -73,7 +76,6 @@ export default function NewModulePage({ params }: any) {
   return (
     <div className="max-w-2xl mx-auto space-y-10 pt-20">
 
-      {/* HEADER */}
       <header className="space-y-1">
         <p className="text-xs font-semibold tracking-[0.25em] text-[#d8a5d0] uppercase">
           Admin • Neues Orbit Modul
@@ -86,8 +88,8 @@ export default function NewModulePage({ params }: any) {
         </p>
       </header>
 
-      {/* FORM */}
       <form className="space-y-6" onSubmit={createModule}>
+
         <OrbitInput
           label="Modul-Titel"
           value={title}
@@ -119,6 +121,7 @@ export default function NewModulePage({ params }: any) {
         >
           Modul speichern
         </OrbitButton>
+
       </form>
     </div>
   );

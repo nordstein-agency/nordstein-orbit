@@ -1,21 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 import OrbitButton from "@/components/orbit/OrbitButton";
 import OrbitInput from "@/components/orbit/OrbitInput";
 import OrbitTextarea from "@/components/orbit/OrbitTextarea";
 
-export default function ModuleEditPage({ params }: any) {
+export default function ModuleEditPage({ params }: { params: Promise<{ slug: string; moduleId: string }> }) {
   const router = useRouter();
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
 
-  const { slug, moduleId } = params;
+  // ⬅️ PARAMS ENTPACKEN – MUSS SO SEIN!
+  const { slug, moduleId } = use(params);
+
+  const supabase = createSupabaseBrowserClient();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -30,7 +29,6 @@ export default function ModuleEditPage({ params }: any) {
   // Modul & Lessons laden
   useEffect(() => {
     async function load() {
-      // Modul
       const { data: mod } = await supabase
         .from("modules")
         .select("*")
@@ -44,7 +42,6 @@ export default function ModuleEditPage({ params }: any) {
       setDescription(mod.description || "");
       setPosition(mod.position);
 
-      // Lessons des Moduls
       const { data: lessonsData } = await supabase
         .from("lessons")
         .select("*")
@@ -52,7 +49,6 @@ export default function ModuleEditPage({ params }: any) {
         .order("position");
 
       setLessons(lessonsData || []);
-
       setLoading(false);
     }
 
@@ -84,21 +80,13 @@ export default function ModuleEditPage({ params }: any) {
   }
 
   if (loading) {
-    return (
-      <div className="pt-24 text-center text-gray-400">
-        Modul wird geladen…
-      </div>
-    );
+    return <div className="pt-24 text-center text-gray-400">Modul wird geladen…</div>;
   }
 
   return (
     <div className="max-w-3xl mx-auto pt-24 space-y-10">
-      {/* Header */}
       <header className="space-y-2">
-        <a
-          href={`/admin/academy/course/${slug}`}
-          className="text-xs text-[#d8a5d0] hover:underline"
-        >
+        <a href={`/admin/academy/course/${slug}`} className="text-xs text-[#d8a5d0] hover:underline">
           ← Zurück zum Kurs
         </a>
 
@@ -108,29 +96,15 @@ export default function ModuleEditPage({ params }: any) {
 
         <h1 className="text-3xl font-bold tracking-wide">{title}</h1>
 
-        <p className="text-sm text-gray-300">
-          Bearbeite die Einstellungen dieses Moduls und verwalte die Lessons.
-        </p>
+        <p className="text-sm text-gray-300">Bearbeite die Einstellungen dieses Moduls und verwalte die Lessons.</p>
       </header>
 
       {/* Modul bearbeiten */}
-      <section
-        className="
-          rounded-2xl border border-white/10
-          bg-black/40 p-6 space-y-6
-        "
-      >
-        <h2 className="text-sm font-semibold text-white">
-          Modul-Einstellungen
-        </h2>
+      <section className="rounded-2xl border border-white/10 bg-black/40 p-6 space-y-6">
+        <h2 className="text-sm font-semibold text-white">Modul-Einstellungen</h2>
 
         <form className="space-y-6" onSubmit={saveModule}>
-          <OrbitInput
-            label="Modul-Titel"
-            value={title}
-            onChange={setTitle}
-            placeholder="Titel eingeben"
-          />
+          <OrbitInput label="Modul-Titel" value={title} onChange={setTitle} placeholder="Titel eingeben" />
 
           <OrbitTextarea
             label="Beschreibung"
@@ -147,62 +121,37 @@ export default function ModuleEditPage({ params }: any) {
             onChange={(v) => setPosition(Number(v))}
           />
 
-          <OrbitButton
-            type="submit"
-            variant="primary"
-            loading={saving}
-            className="w-full"
-          >
+          <OrbitButton type="submit" variant="primary" loading={saving} className="w-full">
             Änderungen speichern
           </OrbitButton>
         </form>
       </section>
 
       {/* LESSON LIST */}
-      <section
-        className="
-          rounded-2xl border border-white/10
-          bg-black/40 p-6 space-y-6
-        "
-      >
+      <section className="rounded-2xl border border-white/10 bg-black/40 p-6 space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white">
-            Orbit Lessons in diesem Modul
-          </h2>
+          <h2 className="text-sm font-semibold text-white">Orbit Lessons in diesem Modul</h2>
 
-          <a href={`/admin/academy/module/${moduleId}/new-lesson`}>
-            <OrbitButton variant="primary" className="text-xs px-3 py-2">
-              Neue Lesson
-            </OrbitButton>
-          </a>
+          <a href={`/admin/academy/course/${slug}/module/${moduleId}/new-lesson`}>
+        <OrbitButton variant="primary" className="text-xs px-3 py-2">
+            Neue Lesson
+        </OrbitButton>
+        </a>
+
         </div>
 
-
         {lessons.length === 0 ? (
-          <p className="text-sm text-gray-400">
-            Noch keine Lessons vorhanden.
-          </p>
+          <p className="text-sm text-gray-400">Noch keine Lessons vorhanden.</p>
         ) : (
           <div className="space-y-3">
             {lessons.map((lesson) => (
               <a
                 key={lesson.id}
                 href={`/admin/academy/lesson/${lesson.id}`}
-                className="
-                  block p-4 rounded-xl
-                  bg-gradient-to-br from-[#1a0f17] via-black to-[#110811]
-                  border border-white/10
-                  hover:border-[#d8a5d0]/40 hover:shadow-[0_0_20px_#a7569244]
-                  transition
-                "
+                className="block p-4 rounded-xl bg-gradient-to-br from-[#1a0f17] via-black to-[#110811] border border-white/10 hover:border-[#d8a5d0]/40 hover:shadow-[0_0_20px_#a7569244] transition"
               >
-                <p className="text-xs text-gray-400 mb-1">
-                  Lesson {lesson.position}
-                </p>
-
-                <h3 className="text-sm font-semibold text-white">
-                  {lesson.title}
-                </h3>
+                <p className="text-xs text-gray-400 mb-1">Lesson {lesson.position}</p>
+                <h3 className="text-sm font-semibold text-white">{lesson.title}</h3>
               </a>
             ))}
           </div>

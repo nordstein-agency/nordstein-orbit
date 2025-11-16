@@ -1,21 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
-
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import OrbitInput from "@/components/orbit/OrbitInput";
 import OrbitTextarea from "@/components/orbit/OrbitTextarea";
 import OrbitButton from "@/components/orbit/OrbitButton";
 
-export default function NewLessonPage({ params }: any) {
+export default function NewLessonPage({ params }: { params: Promise<{ slug: string; moduleId: string }> }) {
   const router = useRouter();
-  const { moduleId } = params;
+  const { slug, moduleId } = use(params);
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = createSupabaseBrowserClient();
+
 
   const [moduleData, setModuleData] = useState<any>(null);
   const [position, setPosition] = useState(1);
@@ -62,7 +59,6 @@ export default function NewLessonPage({ params }: any) {
 
     const { error } = await supabase.from("lessons").insert({
       module_id: moduleId,
-      course_id: moduleData.course_id,
       title,
       description,
       position,
@@ -80,37 +76,40 @@ export default function NewLessonPage({ params }: any) {
     router.refresh();
   }
 
-  if (loading) {
-    return (
-      <div className="pt-24 text-center text-gray-400">
-        Lade Modul…
-      </div>
-    );
-  }
-
+  if (loading || !moduleData) {
   return (
-    <div className="max-w-2xl mx-auto pt-20 space-y-10">
+    <div className="pt-24 text-center text-gray-400">
+      Lade Modul…
+    </div>
+  );
+}
 
-      <header className="space-y-2">
-        <a
-          href={`/admin/academy/course/${moduleData.slug}/module/${moduleId}`}
-          className="text-xs text-[#d8a5d0] hover:underline"
-        >
-          ← Zurück zum Modul
-        </a>
+return (
+  <div className="max-w-2xl mx-auto pt-20 space-y-10">
 
-        <p className="text-xs font-semibold tracking-[0.25em] text-[#d8a5d0] uppercase">
-          Admin • Neue Lesson
-        </p>
+    <header className="space-y-2">
+      <a
+        href={`/admin/academy/course/${slug}/module/${moduleId}`}
+        className="text-xs text-[#d8a5d0] hover:underline"
+      >
+        ← Zurück zum Modul
+      </a>
 
-        <h1 className="text-3xl font-bold tracking-wide">
-          Neue Lesson für "{moduleData.title}"
-        </h1>
+      <p className="text-xs font-semibold tracking-[0.25em] text-[#d8a5d0] uppercase">
+        Admin • Neue Lesson
+      </p>
 
-        <p className="text-sm text-gray-300">
-          Erstelle eine neue Lesson in diesem Modul.
-        </p>
-      </header>
+      <h1 className="text-3xl font-bold tracking-wide">
+        Neue Lesson für "{moduleData.title}"
+      </h1>
+
+      <p className="text-sm text-gray-300">
+        Erstelle eine neue Lesson in diesem Modul.
+      </p>
+    </header>
+
+    {/* Rest unverändert */}
+
 
       <form className="space-y-6" onSubmit={createLesson}>
         <OrbitInput

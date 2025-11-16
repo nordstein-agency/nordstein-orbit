@@ -3,19 +3,23 @@ import { createServerClient } from "@supabase/ssr";
 import OrbitButton from "@/components/orbit/OrbitButton";
 
 type PageProps = {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 };
 
 export default async function CourseEditPage({ params }: PageProps) {
-  const cookieStore = await cookies();
+  // ⬇️ params-Promise einmal auflösen
+  const { slug } = await params;
+
+  // cookies() ist synchron, du brauchst hier kein await
+  const cookieStore = cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        async get(name: string) {
+          return (await cookieStore).get(name)?.value;
         },
       },
     }
@@ -25,7 +29,7 @@ export default async function CourseEditPage({ params }: PageProps) {
   const { data: course, error: courseError } = await supabase
     .from("courses")
     .select("*")
-    .eq("slug", params.slug)
+    .eq("slug", slug)   // ⬅️ hier slug verwenden
     .single();
 
   if (courseError || !course) {
@@ -269,7 +273,7 @@ export default async function CourseEditPage({ params }: PageProps) {
                       <p className="text-xs text-gray-400 mb-0.5">
                         Orbit Modul {mod.position}
                       </p>
-                      <h3 className="text-sm font-semibold text-white">
+                      <h3 className="text-sm font-semibold text:white">
                         {mod.title}
                       </h3>
                     </div>
