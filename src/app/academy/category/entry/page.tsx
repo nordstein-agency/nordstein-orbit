@@ -1,49 +1,31 @@
-const entryCourses = [
-  {
-    title: "Customer Journey",
-    description:
-      "Verstehe den kompletten Weg vom ersten Kontakt bis zum zufriedenen Nordstein-Kunden.",
-  },
-  {
-    title: "Leitfäden & Pitch",
-    description:
-      "Grundlagen der Nordstein-Gesprächsführung – wie du sicher und klar auftrittst.",
-  },
-  {
-    title: "Marketing Basics",
-    description:
-      "Was ist gutes Marketing? Grundlagen für Social Media, Content und Werbesprache.",
-  },
-  {
-    title: "Performance Marketing Basics",
-    description:
-      "Einführung in bezahlte Werbung und die wichtigsten Kennzahlen.",
-  },
-  {
-    title: "Produkte Nordstein",
-    description:
-      "Überblick über die wichtigsten Nordstein-Leistungen und Angebote.",
-  },
-  {
-    title: "Sales Calls Basics",
-    description:
-      "Wie du Telefonate und Voice-Nachrichten professionell und klar führst.",
-  },
-  {
-    title: "Die vier Menschentypen",
-    description:
-      "Grundlagen der Persönlichkeitstypen für bessere Kommunikation im Alltag.",
-  },
-  {
-    title: "Lead Management (Workshop)",
-    description:
-      "Wie du Leads strukturierst, priorisierst und sauber dokumentierst.",
-  },
-];
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import Link from "next/link";
 
-export default function EntryCategoryPage() {
+export default async function EntryCategoryPage() {
+  const cookieStore = await cookies();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+      },
+    }
+  );
+
+  // Alle ENTRY-Kurse laden
+  const { data: courses } = await supabase
+    .from("courses")
+    .select("*")
+    .eq("category", "entry")
+    .order("position", { ascending: true });
+
   return (
-    <div className="max-w-6xl mx-auto space-y-10">
+    <div className="max-w-6xl mx-auto space-y-10 pt-24">
       {/* Header */}
       <header>
         <p className="text-xs font-semibold tracking-[0.25em] text-[#d8a5d0] uppercase mb-2">
@@ -53,16 +35,16 @@ export default function EntryCategoryPage() {
           Entry – Grundlagen bei Nordstein
         </h1>
         <p className="text-gray-300 mt-3 max-w-2xl text-sm md:text-base">
-          In diesen Modulen lernst du die Basis für deine Arbeit bei Nordstein:
-          Customer Journey, Leitfäden, Marketing und erste Sales-Skills.
+          Wähle einen Kurs, um die Inhalte zu starten.
         </p>
       </header>
 
       {/* Kursliste */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {entryCourses.map((course) => (
-          <div
-            key={course.title}
+        {courses?.map((course) => (
+          <Link
+            key={course.id}
+            href={`/academy/course/${course.slug}`}
             className="
               group relative rounded-2xl border border-white/10
               bg-gradient-to-br from-[#1a0f17] via-black to-[#120912]
@@ -85,18 +67,16 @@ export default function EntryCategoryPage() {
               <h2 className="text-lg font-semibold text-white mb-1">
                 {course.title}
               </h2>
-              <p className="text-sm text-gray-300">
-                {course.description}
-              </p>
+              <p className="text-sm text-gray-300">{course.description}</p>
             </div>
 
             <div className="mt-4 text-xs text-[#d8a5d0] relative z-10 flex items-center justify-between">
-              <span>Kurs öffnen (kommt noch)</span>
+              <span>Kurs öffnen</span>
               <span className="transition-transform duration-150 group-hover:translate-x-[2px]">
                 →
               </span>
             </div>
-          </div>
+          </Link>
         ))}
       </section>
     </div>

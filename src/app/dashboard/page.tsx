@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
+import OrbitPageLoader from "@/components/orbit/OrbitPageLoader";
+
 
 export default async function DashboardPage() {
   // NEXT.JS 16: cookies() ist async
@@ -26,6 +28,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="pt-16 px-6 pb-20 min-h-screen text-white">
+
 
       {/* --- Begrüßung --- */}
       <section className="mb-10 animate-fade-in">

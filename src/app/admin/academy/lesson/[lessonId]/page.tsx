@@ -37,6 +37,11 @@ export default function LessonEditor({
   const [newText, setNewText] = useState("");
   const [savingBlock, setSavingBlock] = useState(false);
 
+  const [showVideoModal, setShowVideoModal] = useState(false);
+    const [newVideoUrl, setNewVideoUrl] = useState("");
+    const [savingVideo, setSavingVideo] = useState(false);
+
+
   // -----------------------------
   // Daten laden
   // -----------------------------
@@ -118,29 +123,69 @@ export default function LessonEditor({
   // TEXTBLOCK SPEICHERN
   // -----------------------------
   async function saveTextBlock() {
-    setSavingBlock(true);
+  setSavingBlock(true);
 
-    const { data: highest , error} = await supabase
-      .from("lesson_blocks")
-      .select("position")
-      .eq("lesson_id", lessonId)
-      .order("position", { ascending: false })
-      .limit(1);
+  const { data: highest } = await supabase
+    .from("lesson_blocks")
+    .select("position")
+    .eq("lesson_id", lessonId)
+    .order("position", { ascending: false })
+    .limit(1);
 
-    const nextPos = highest?.[0]?.position + 1 || 1;
+  const nextPos = highest?.[0]?.position + 1 || 1;
 
-    await supabase.from("lesson_blocks").insert({
-      lesson_id: lessonId,
-      block_type: "text",
-      position: nextPos,
-      content: { text: newText },
-    });
+  await supabase.from("lesson_blocks").insert({
+    lesson_id: lessonId,
+    block_type: "text",
+    position: nextPos,
 
-    setSavingBlock(false);
-    setShowTextModal(false);
+    // TEXT
+    content: newText,
 
-    router.refresh();
-  }
+    // JSONB leer
+    data: null,
+  });
+
+  setSavingBlock(false);
+  setShowTextModal(false);
+  setNewText("");
+
+  router.refresh();
+}
+
+
+
+async function saveVideoBlock() {
+  setSavingVideo(true);
+
+  const { data: highest } = await supabase
+    .from("lesson_blocks")
+    .select("position")
+    .eq("lesson_id", lessonId)
+    .order("position", { ascending: false })
+    .limit(1);
+
+  const nextPos = highest?.[0]?.position + 1 || 1;
+
+  await supabase.from("lesson_blocks").insert({
+    lesson_id: lessonId,
+    block_type: "video",
+    position: nextPos,
+
+    // TEXT ist leer
+    content: null,
+
+    // JSONB speichert YouTube URL
+    data: { youtube_url: newVideoUrl },
+  });
+
+  setSavingVideo(false);
+  setShowVideoModal(false);
+  setNewVideoUrl("");
+
+  router.refresh();
+}
+
 
   // -----------------------------
   // UI
@@ -228,30 +273,52 @@ export default function LessonEditor({
 
       {/* BLOCK EDITOR */}
       <section className="rounded-2xl border border-white/10 bg-black/40 p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white">Inhalte der Lesson</h2>
+        <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-white">Inhalte der Lesson</h2>
 
-          <OrbitButton variant="secondary" onClick={() => setShowTextModal(true)}>
+        <div className="flex gap-2">
+            <OrbitButton variant="secondary" onClick={() => setShowTextModal(true)}>
             + Textblock
-          </OrbitButton>
+            </OrbitButton>
+
+            <OrbitButton variant="secondary" onClick={() => setShowVideoModal(true)}>
+            + Video
+            </OrbitButton>
+        </div>
         </div>
 
+
         {blocks.length === 0 ? (
-          <p className="text-sm text-gray-400">Noch keine Inhalte vorhanden.</p>
-        ) : (
-          <div className="space-y-4">
-            {blocks.map((block) => (
-              <div
-                key={block.id}
-                className="p-4 rounded-xl bg-gradient-to-br from-[#1a0f17] via-black to-[#110811] border border-white/10 text-sm text-gray-300"
-              >
-                <p className="text-xs text-gray-400">Block #{block.position}</p>
-                <p className="font-semibold text-white mt-1">{block.type}</p>
-                <p className="mt-2 text-gray-300">{block.content?.text}</p>
-              </div>
-            ))}
-          </div>
+  <p className="text-sm text-gray-400">Noch keine Inhalte vorhanden.</p>
+) : (
+  <div className="space-y-4">
+    {blocks.map((block) => (
+      <div
+        key={block.id}
+        className="p-4 rounded-xl bg-gradient-to-br from-[#1a0f17] via-black to-[#110811] border border-white/10 text-sm text-gray-300"
+      >
+        <p className="text-xs text-gray-400">Block #{block.position}</p>
+
+        <p className="font-semibold text-white mt-1">
+          {block.block_type === "video" ? "🎬 Video" : "📝 Text"}
+        </p>
+
+        {/* TEXTBLOCK */}
+        {block.block_type === "text" && (
+          <p className="mt-2 text-gray-300">{block.content}</p>
         )}
+
+        {/* VIDEOBLOCK */}
+        {block.block_type === "video" && (
+          <p className="mt-2 text-[#d8a5d0] text-xs">
+            {block.data?.youtube_url}
+          </p>
+        )}
+      </div>
+    ))}
+  </div>
+)}
+
       </section>
 
       {/* TEXTBLOCK MODAL */}
@@ -278,6 +345,34 @@ export default function LessonEditor({
           </div>
         </div>
       )}
+
+      {showVideoModal && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="bg-black/80 border border-white/10 rounded-2xl p-6 w-full max-w-lg space-y-4">
+      <h3 className="text-lg font-semibold">YouTube-Video hinzufügen</h3>
+
+      <input
+        type="text"
+        placeholder="YouTube URL eingeben"
+        className="w-full p-3 rounded-xl bg-black/40 border border-white/10 text-gray-200"
+        value={newVideoUrl}
+        onChange={(e) => setNewVideoUrl(e.target.value)}
+      />
+
+      <div className="flex justify-end gap-2">
+        <OrbitButton variant="secondary" onClick={() => setShowVideoModal(false)}>
+          Abbrechen
+        </OrbitButton>
+
+        <OrbitButton variant="primary" loading={savingVideo} onClick={saveVideoBlock}>
+          Speichern
+        </OrbitButton>
+      </div>
+    </div>
+  </div>
+)}
+
+
     </div>
   );
 }
