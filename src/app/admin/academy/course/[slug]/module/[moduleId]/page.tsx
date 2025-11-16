@@ -80,8 +80,34 @@ export default function ModuleEditPage({ params }: { params: Promise<{ slug: str
   }
 
   if (loading) {
-    return <div className="pt-24 text-center text-gray-400">Modul wird geladen…</div>;
-  }
+  return (
+    <div className="pt-32 flex flex-col items-center justify-center">
+      <div
+        className="
+          relative w-24 h-24 
+          animate-[orbit-spin_6s_linear_infinite] 
+          flex items-center justify-center
+        "
+      >
+        {/* Outer Glow */}
+        <div className="absolute inset-0 rounded-full blur-xl bg-[#b244ff]/30" />
+
+        {/* Floating Logo */}
+        <img
+          src="/orbit.png"
+          alt="Orbit Loading"
+          className="
+            w-16 h-16 
+            animate-[orbit-float_3s_ease-in-out_infinite]
+            drop-shadow-[0_0_15px_#b244ff]
+          "
+        />
+      </div>
+
+      
+    </div>
+  );
+}
 
   return (
     <div className="max-w-3xl mx-auto pt-24 space-y-10">
