@@ -51,8 +51,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // Auth muss frei bleiben
-    "/(?!login)(?!auth)(?!_next)(?!api)(?!.*\\..*).*$",
+    "/((?!login|auth|_next|api|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)",
   ],
 };
 
