@@ -51,7 +51,8 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // blockiere ALLES außer _next, static files, api, auth
-    "/((?!api|_next|auth|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)",
+    // Auth muss frei bleiben
+    "/(?!login)(?!auth)(?!_next)(?!api)(?!.*\\..*).*$",
   ],
 };
+
