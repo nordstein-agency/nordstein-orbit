@@ -28,7 +28,7 @@ export default function RootLayout({
         {/* ======= CONTENT ======= */}
         <div className="relative z-10">
           <Navbar />
-          <main className="pt-24">{children}</main>
+          <main className="pt-8">{children}</main>
         </div>
 
       </body>

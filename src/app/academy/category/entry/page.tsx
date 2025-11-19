@@ -25,7 +25,7 @@ export default async function EntryCategoryPage() {
     .order("position", { ascending: true });
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10 pt-24">
+    <div className="max-w-6xl mx-auto space-y-10 pt-6">
       {/* Header */}
       <header>
         <p className="text-xs font-semibold tracking-[0.25em] text-[#d8a5d0] uppercase mb-2">

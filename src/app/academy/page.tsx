@@ -24,7 +24,7 @@ const highlightCards = [
 
 export default function AcademyPage() {
   return (
-    <div className="max-w-6xl mx-auto space-y-10">
+    <div className="max-w-6xl mx-auto space-y-10 pt-12">
       {/* Header */}
       <header>
         <p className="text-xs font-semibold tracking-[0.2em] text-[#d8a5d0] uppercase mb-2">

@@ -24,7 +24,7 @@ export default async function AcademyAdminPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-8 pt-12">
       
       {/* Header */}
       <header className="space-y-2">

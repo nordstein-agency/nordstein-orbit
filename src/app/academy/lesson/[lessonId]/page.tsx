@@ -1,192 +1,174 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-
-function youtubeToEmbed(url: string) {
-  if (!url) return "";
-
-  // youtu.be links
-  if (url.includes("youtu.be")) {
-    const id = url.split("youtu.be/")[1].split("?")[0];
-    return `https://www.youtube.com/embed/${id}`;
-  }
-
-  // watch?v=
-  if (url.includes("watch?v=")) {
-    const id = url.split("watch?v=")[1].split("&")[0];
-    return `https://www.youtube.com/embed/${id}`;
-  }
-
-  // sonst zurück
-  return url;
-}
-
+import Link from "next/link";
+import { OrbitButtonLink } from "@/components/orbit/OrbitButton";
+import LessonTopbar from "@/components/academy/lesson/LessonTopbar";
+import LessonSidebar from "@/components/academy/lesson/LessonSidebar";
+import LessonBlock from "@/components/academy/lesson/LessonBlock";
+import LessonProgressSync from "@/components/academy/lesson/LessonProgressSync";
+import OrbitQuizPlayer from "@/components/academy/OrbitQuizPlayer";
 
 export default async function LessonPage({ params }: any) {
-  // Next.js 16: params ist ein Promise
   const { lessonId } = await params;
 
   const cookieStore = await cookies();
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
+      cookies: { get: (name: string) => cookieStore.get(name)?.value },
     }
   );
 
-  // 1. Lesson laden
+  /* --- Lesson laden --- */
   const { data: lesson } = await supabase
     .from("lessons")
     .select("*")
     .eq("id", lessonId)
     .single();
 
-  // 2. Blocks laden
-  const { data: blocks } = await supabase
-    .from("lesson_blocks")
-    .select("*")
-    .eq("lesson_id", lessonId)
-    .order("position");
-
-    
-
   if (!lesson) {
-    return (
-      <div className="p-10 text-red-400">
-        Lesson nicht gefunden.
-      </div>
-    );
+    return <div className="p-10 text-red-400">Lesson nicht gefunden.</div>;
   }
 
-    // Modul laden
+  /* --- Modul laden --- */
   const { data: moduleData } = await supabase
     .from("modules")
     .select("*")
     .eq("id", lesson.module_id)
     .single();
 
-  // Kurs laden
+  /* --- Kurs laden --- */
   const { data: courseData } = await supabase
     .from("courses")
     .select("*")
     .eq("id", moduleData.course_id)
     .single();
 
+  /* --- Blocks laden --- */
+  const { data: blocks } = await supabase
+    .from("lesson_blocks")
+    .select("*")
+    .eq("lesson_id", lessonId)
+    .order("position");
 
-      // Alle Lessons des Moduls laden (für Navigation)
+  /* --- Alle Lessons im Modul laden --- */
   const { data: allLessons } = await supabase
     .from("lessons")
     .select("*")
     .eq("module_id", moduleData.id)
     .order("position");
 
-  // 6. Navigation berechnen (null-safe)
-const safeLessons = allLessons ?? [];
-const index = safeLessons.findIndex((l) => l.id === lesson.id);
+  const safeLessons = allLessons ?? [];
 
-const prevLesson = index > 0 ? safeLessons[index - 1] : null;
-const nextLesson =
-  index < safeLessons.length - 1 ? safeLessons[index + 1] : null;
+  const currentIndex = safeLessons.findIndex((l) => l.id === lesson.id);
+  const prevLesson = currentIndex > 0 ? safeLessons[currentIndex - 1] : null;
+  const nextLesson =
+    currentIndex < safeLessons.length - 1
+      ? safeLessons[currentIndex + 1]
+      : null;
 
+  /* --- User Progress laden --- */
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
+  let userProgress = null;
 
+  if (user) {
+    const { data: foundProgress } = await supabase
+      .from("user_course_progress")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("course_id", courseData.id)
+      .single();
 
+    userProgress = foundProgress;
+  }
+
+  /* --- Progress berechnen --- */
+  const progressPercent =
+    safeLessons.length > 0
+      ? ((currentIndex + 1) / safeLessons.length) * 100
+      : 0;
+
+  /* ---------------- E-Learning UI ---------------- */
   return (
-    <div className="max-w-3xl mx-auto pt-24 pb-20 space-y-10">
-      {/* Header */}
-      <header className="space-y-3">
-        {/* BACK BUTTON */}
-        <a
-            href={`/academy/course/${courseData.slug}`}
-            className="text-xs text-[#d8a5d0] hover:underline"
-        >
-            ← Zurück zum Kurs
-        </a>
+    <div className="flex w-full min-h-screen">
 
-        <p className="text-xs text-[#d8a5d0] uppercase tracking-[0.25em]">
+      {/* SIDEBAR */}
+      <LessonSidebar
+        moduleTitle={moduleData.title}
+        lessons={safeLessons}
+        currentLessonId={lesson.id}
+      />
+
+      {/* MAIN CONTENT / PLAYER */}
+      <main className="flex-1 px-4 md:px-10 py-6 md:py-10 space-y-8">
+
+        {/* Fortschritt in DB aktualisieren */}
+        <LessonProgressSync
+          courseId={courseData.id}
+          lessonId={lesson.id}
+        />
+
+        {/* Topbar */}
+        <LessonTopbar
+          courseTitle={courseData.title}
+          moduleTitle={moduleData.title}
+          lessonTitle={lesson.title}
+          backHref={`/academy/course/${courseData.slug}`}
+          progressPercent={progressPercent}
+        />
+
+        {/* Lesson Header */}
+        <header className="space-y-2">
+          <p className="text-xs uppercase tracking-[0.25em] text-[#d8a5d0]">
             Lesson
-        </p>
-
-        <h1 className="text-3xl font-bold tracking-wide">{lesson.title}</h1>
-
-        {lesson.description && (
+          </p>
+          <h1 className="text-3xl font-bold mt-1">{lesson.title}</h1>
+          {lesson.description && (
             <p className="text-gray-300 mt-2">{lesson.description}</p>
-        )}
+          )}
         </header>
 
+        {/* BLOCKS */}
+        <section className="space-y-8">
+          {blocks?.map((block) => (
+            <LessonBlock key={block.id} block={block} />
+          ))}
+        </section>
 
-      {/* CONTENT BLÖCKE */}
-      <section className="space-y-8">
-        {blocks?.map((block) => (
-          <div key={block.id} className="space-y-3">
-            {/* TEXTBLOCK */}
-            {block.block_type === "text" && (
-              <div
-                className="
-                  p-5 rounded-xl 
-                  bg-gradient-to-br from-[#1a0f17] via-black to-[#110811]
-                  border border-white/10 
-                  text-gray-200
-                "
-              >
-                {block.content}
-              </div>
-            )}
-
-            {/* VIDEOBLOCK */}
-            {block.block_type === "video" && (
-            <div className="relative w-full rounded-2xl overflow-hidden border border-white/10 bg-black">
-
-                {/* Glow Effekt */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#d8a5d022] to-transparent pointer-events-none" />
-
-                {/* YouTube Player */}
-                <iframe
-                className="w-full aspect-video rounded-2xl"
-                src={youtubeToEmbed(block.data?.youtube_url)}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                />
-            </div>
-            )}
-
-          </div>
-        ))}
-      </section>
-
-
-              {/* NAVIGATION */}
-      <div className="flex justify-between pt-10">
-        {prevLesson ? (
-          <a
-            href={`/academy/lesson/${prevLesson.id}`}
-            className="text-[#d8a5d0] hover:underline"
-          >
-            ← {prevLesson.title}
-          </a>
-        ) : (
-          <div />
+        {Array.isArray(blocks) && blocks.some(b => b.block_type === "quiz") && (
+          <OrbitQuizPlayer lessonId={lessonId} />
         )}
 
-        {nextLesson ? (
-          <a
-            href={`/academy/lesson/${nextLesson.id}`}
-            className="text-[#d8a5d0] hover:underline"
-          >
-            {nextLesson.title} →
-          </a>
-        ) : (
-          <div />
-        )}
-      </div>
 
+        {/* Navigation */}
+        <div className="flex justify-between pt-8 border-t border-white/10">
+          {prevLesson ? (
+            <OrbitButtonLink
+              href={`/academy/lesson/${prevLesson.id}`}
+              variant="secondary"
+            >
+              ← {prevLesson.title}
+            </OrbitButtonLink>
+          ) : (
+            <div />
+          )}
 
-
+          {nextLesson ? (
+            <OrbitButtonLink
+              href={`/academy/lesson/${nextLesson.id}`}
+              variant="primary"
+            >
+              {nextLesson.title} →
+            </OrbitButtonLink>
+          ) : (
+            <div />
+          )}
+        </div>
+      </main>
     </div>
   );
 }
