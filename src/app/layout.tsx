@@ -1,5 +1,6 @@
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import { OrbitToastProvider } from "@/components/orbit/OrbitToast";
 
 export const metadata = {
   title: "Nordstein Orbit",
@@ -14,7 +15,8 @@ export default function RootLayout({
   return (
     <html lang="de">
       <body className="min-h-screen relative overflow-x-hidden bg-black">
-
+        <OrbitToastProvider>
+          
         {/* ======= PERFORMANTER ORBIT TEST-BACKGROUND ======= */}
         <div className="absolute inset-0 -z-50">
           {/* Nur ein EINZIGER, super schneller Layer */}
@@ -31,6 +33,7 @@ export default function RootLayout({
           <main className="pt-8">{children}</main>
         </div>
 
+        </OrbitToastProvider>
       </body>
     </html>
   );
