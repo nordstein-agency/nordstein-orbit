@@ -12,14 +12,16 @@ export async function PATCH(req: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name) {
-          return cookieStore.get(name)?.value;
-        }
-      }
+        get(name: string) {
+          return cookieStore.get(name)?.value ?? "";
+        },
+        set() {},
+        remove() {},
+      },
     }
   );
 
-  // 1. User holen
+  // 1️⃣ USER LADEN
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -28,32 +30,30 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Not logged in" }, { status: 401 });
   }
 
-  // 2. Bestehenden Progress holen
-  const { data: existing } = await supabase
-    .from("user_course_progress")
-    .select("*")
+  // 2️⃣ PRÜFEN, OB ES SCHON EINEN PROGRESS-EINTRAG GIBT
+  const { data: existing, error: existingError } = await supabase
+    .from("user_lesson_progress")
+    .select("completed")
     .eq("user_id", user.id)
-    .eq("course_id", course_id)
+    .eq("lesson_id", lesson_id)
     .maybeSingle();
 
-  // 3. Updaten oder erstellen
-  if (existing) {
-    await supabase
-      .from("user_course_progress")
-      .update({
-        lesson_id,
-        completet: false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", existing.id);
-  } else {
-    await supabase.from("user_course_progress").insert({
-      user_id: user.id,
-      course_id,
-      lesson_id,
-      completet: false,
-    });
+  if (existingError) {
+    console.error("Progress-Check Fehler:", existingError);
   }
 
-  return NextResponse.json({ status: "updated" });
+  // 3️⃣ WENN BEREITS EINTRAG EXISTIERT → NICHTS MACHEN
+  if (existing) {
+    return NextResponse.json({ ok: true, status: "already_exists" });
+  }
+
+  // 4️⃣ ERSTEN EINTRAG ANLEGEN (completed = false)
+  await supabase.from("user_lesson_progress").insert({
+    user_id: user.id,
+    lesson_id,
+    completed: false,
+    updated_at: new Date().toISOString(),
+  });
+
+  return NextResponse.json({ ok: true, status: "created" });
 }

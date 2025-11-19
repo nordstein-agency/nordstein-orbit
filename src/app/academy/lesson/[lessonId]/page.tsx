@@ -7,6 +7,9 @@ import LessonSidebar from "@/components/academy/lesson/LessonSidebar";
 import LessonBlock from "@/components/academy/lesson/LessonBlock";
 import LessonProgressSync from "@/components/academy/lesson/LessonProgressSync";
 import OrbitQuizPlayer from "@/components/academy/OrbitQuizPlayer";
+import { completeLessonServer } from "./completeLesson";
+import LessonNextButton from "@/components/academy/lesson/LessonNextButton";
+
 
 export default async function LessonPage({ params }: any) {
   const { lessonId } = await params;
@@ -158,12 +161,14 @@ export default async function LessonPage({ params }: any) {
           )}
 
           {nextLesson ? (
-            <OrbitButtonLink
-              href={`/academy/lesson/${nextLesson.id}`}
-              variant="primary"
-            >
-              {nextLesson.title} →
-            </OrbitButtonLink>
+
+
+            <LessonNextButton
+              lessonId={lesson.id}
+              nextLessonId={nextLesson.id}
+            />
+
+
           ) : (
             <div />
           )}

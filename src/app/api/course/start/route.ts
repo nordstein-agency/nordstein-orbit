@@ -50,7 +50,6 @@ export async function POST(req: Request) {
     .insert({
       user_id: user.id,
       course_id,
-      lesson_id: first_lesson_id,
       completed: false,
     });
 

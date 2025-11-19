@@ -117,6 +117,88 @@ export default function OrbitQuizPlayer({ lessonId }: { lessonId: string }) {
     setIsCorrect(null);
   }
 
+async function completeLesson() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  // 1. Lesson Progress speichern
+  await supabase
+    .from("user_lesson_progress")
+    .upsert(
+      {
+        user_id: user.id,
+        lesson_id: lessonId,
+        completed: true,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,lesson_id" }
+    );
+
+  // 2. Lesson Info laden
+  const { data: lessonInfo } = await supabase
+    .from("lessons")
+    .select("module_id")
+    .eq("id", lessonId)
+    .single();
+
+  if (!lessonInfo) return; // <-- FIX
+
+  // 3. Modul Info laden
+  const { data: moduleInfo } = await supabase
+    .from("modules")
+    .select("course_id")
+    .eq("id", lessonInfo.module_id)
+    .single();
+
+  if (!moduleInfo) return; // <-- FIX
+
+  const courseId = moduleInfo.course_id;
+
+  // 4. Alle Lessons im Modul laden
+  const { data: allLessons } = await supabase
+    .from("lessons")
+    .select("id")
+    .eq("module_id", lessonInfo.module_id);
+
+  if (!allLessons) return; // <-- FIX
+
+  const lessonIds = allLessons.map((l) => l.id);
+
+  // 5. Fortschritt des Users für alle Lessons laden
+  const { data: progresses } = await supabase
+    .from("user_lesson_progress")
+    .select("lesson_id, completed")
+    .eq("user_id", user.id)
+    .in("lesson_id", lessonIds);
+
+  // falls progress null → kein Abschluss möglich
+  if (!progresses) return; // <-- FIX
+
+  const allDone = lessonIds.every((l) =>
+    progresses.some((p) => p.lesson_id === l && p.completed === true)
+  );
+
+  // 6. Wenn ALLE Lessons abgeschlossen → Course Progress speichern
+  if (allDone) {
+    await supabase
+      .from("user_course_progress")
+      .upsert(
+        {
+          user_id: user.id,
+          course_id: courseId,
+          completed: true,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,course_id" }
+      );
+  }
+}
+
+
+
   function handleBackToCourse() {
     // Wenn du eine explizite Route hast, kannst du hier z.B. router.push("/academy/...") machen
     router.back();
@@ -284,7 +366,11 @@ export default function OrbitQuizPlayer({ lessonId }: { lessonId: string }) {
         {/* Buttons unten */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-4 border-t border-white/10 mt-2">
           <div className="flex gap-2">
+
+
+
             {!hasAnswered ? (
+                // → Noch nicht beantwortet
                 <OrbitButton
                     variant="primary"
                     onClick={handleSubmit}
@@ -294,15 +380,22 @@ export default function OrbitQuizPlayer({ lessonId }: { lessonId: string }) {
                     Beantworten
                 </OrbitButton>
                 ) : isCorrect ? (
-                // → RICHTIG beantwortet
+                // → RICHTIG BEANTWORTET
                 <OrbitButton
                     variant="primary"
-                    onClick={isLastQuestion ? handleBackToCourse : handleNext}
+                    onClick={
+                    isLastQuestion
+                        ? async () => {
+                            await completeLesson(); // ⭐ Lesson/Fortschritt speichern
+                            handleBackToCourse();
+                        }
+                        : handleNext
+                    }
                 >
                     {isLastQuestion ? "Quiz abschließen" : "Weiter"}
                 </OrbitButton>
                 ) : (
-                // → FALSCH beantwortet → NEU STARTEN
+                // → FALSCH BEANTWORTET → Quiz von vorne
                 <OrbitButton
                     variant="secondary"
                     onClick={handleRetry}
@@ -310,6 +403,9 @@ export default function OrbitQuizPlayer({ lessonId }: { lessonId: string }) {
                     Nochmal versuchen
                 </OrbitButton>
                 )}
+
+
+
 
           </div>
 

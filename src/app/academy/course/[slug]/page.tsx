@@ -42,18 +42,17 @@ export default async function CoursePage({ params }: any) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let userProgress: any = null;
+  let lessonProgress: any[] = [];
 
   if (user) {
     const { data } = await supabase
-      .from("user_course_progress")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("course_id", course.id)
-      .single();
+      .from("user_lesson_progress")
+      .select("lesson_id, completed")
+      .eq("user_id", user.id);
 
-    userProgress = data;
+    lessonProgress = data ?? [];
   }
+
 
   // total lessons
   let allLessons: any[] = [];
@@ -73,23 +72,33 @@ export default async function CoursePage({ params }: any) {
   const firstLesson = allLessons[0];
 
   // progress calc
-  let courseProgress = 0;
   let continueLessonHref = null;
+let courseProgress = 0;
 
-  if (userProgress) {
-    const currentLessonIndex = allLessons.findIndex(
-      (l) => l.id === userProgress.lesson_id
-    );
+if (user) {
+  const completedLessonIds = lessonProgress
+    .filter((p) => p.completed)
+    .map((p) => p.lesson_id);
 
-    continueLessonHref = `/academy/lesson/${userProgress.lesson_id}`;
+  const completedCount = completedLessonIds.length;
 
-    courseProgress =
-      currentLessonIndex >= 0
-        ? ((currentLessonIndex + 1) / totalLessons) * 100
-        : 0;
+  courseProgress = totalLessons > 0
+    ? Math.round((completedCount / totalLessons) * 100)
+    : 0;
 
-    if (userProgress.completet) courseProgress = 100;
+  // nächste Lesson finden
+  const nextLesson = allLessons.find(
+    (l) => !completedLessonIds.includes(l.id)
+  );
+
+  if (nextLesson) {
+    continueLessonHref = `/academy/lesson/${nextLesson.id}`;
+  } else {
+    // alles fertig
+    continueLessonHref = null;
   }
+}
+
 
   return (
     <div className="max-w-4xl mx-auto space-y-10 pt-10">
@@ -104,7 +113,7 @@ export default async function CoursePage({ params }: any) {
         <p className="text-gray-300">{course.description}</p>
 
         {/* BADGE */}
-        {userProgress?.completet ? (
+        {courseProgress === 100 ? (
           <div className="inline-block px-3 py-1 mt-3 rounded-full bg-[#a75692]/20 border border-[#a75692] text-[#d8a5d0] text-xs">
             🏅 Zertifikat abgeschlossen
           </div>
@@ -116,17 +125,20 @@ export default async function CoursePage({ params }: any) {
       </header>
 
       {/* PROGRESS */}
-      {userProgress && (
-        <div className="space-y-2">
-          <ProgressBar progress={Math.round(courseProgress)} />
-          <p className="text-xs text-gray-400">
-            {Math.round(courseProgress)}% abgeschlossen
-          </p>
-        </div>
-      )}
+      {user && (
+      <div className="space-y-2">
+        <ProgressBar progress={Math.round(courseProgress)} />
+        <p className="text-xs text-gray-400">
+          {Math.round(courseProgress)}% abgeschlossen
+        </p>
+      </div>
+    )}
+
 
       {/* ACTION BUTTON */}
-      {!userProgress && (
+      {/* ACTION BUTTON */}
+      {/* Kurs starten → nur zeigen, wenn CourseProgress == 0 UND der User NICHT eingeloggt oder NICHTS begonnen hat */}
+      {continueLessonHref === null && courseProgress === 0 && (
         <StartCourseButton
           courseId={course.id}
           firstLessonId={firstLesson.id}
@@ -134,7 +146,8 @@ export default async function CoursePage({ params }: any) {
         />
       )}
 
-      {userProgress && continueLessonHref && !userProgress.completet && (
+      {/* Weiter lernen → User hat begonnen, aber nicht fertig */}
+      {continueLessonHref !== null && courseProgress < 100 && (
         <Link
           href={continueLessonHref}
           className="
@@ -147,6 +160,8 @@ export default async function CoursePage({ params }: any) {
           Weiter lernen →
         </Link>
       )}
+
+
 
       {/* MODULE LIST */}
       <section className="space-y-6">
