@@ -1,107 +1,107 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { createServerClient } from "@supabase/ssr";
-import OrbitPageLoader from "@/components/orbit/OrbitPageLoader";
+"use client";
 
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { ArrowUpRight } from "lucide-react";
 
-export default async function DashboardPage() {
-  // NEXT.JS 16: cookies() ist async
-  const cookieStore = await cookies();
+const cards = [
+  {
+    title: "Leads",
+    description: "Lead Management, Projekte, AI-Scoring",
+    href: "/leads",
+    color: "from-[#d8a5d0] to-[#a75692]",
+    delay: 0.0
+  },
+  {
+    title: "Academy",
+    description: "Schulungen, Kurse, Zertifikate",
+    href: "/academy",
+    color: "from-[#8b5bb3] to-[#b879a8]",
+    delay: 0.05
+  },
+  {
+    title: "Coming Soon",
+    description: "Neue Features & Module",
+    href: "/coming-soon",
+    color: "from-[#a05fb5] to-[#5a2e7e]",
+    delay: 0.1
+  },
+  {
+    title: "Alliance",
+    description: "Partner, Projekte, Upsell-Potential",
+    href: "/alliance",
+    color: "from-[#b76bcf] to-[#7d3c97]",
+    delay: 0.15
+  }
+];
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
-
+export default function DashboardPage() {
   return (
-    <main className="pt-16 px-6 pb-20 min-h-screen text-white">
+    <div className="min-h-screen pt-28 px-6">
+      
+      {/* Heading */}
+      <motion.h1
+        initial={{ opacity: 0, y: -15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-4xl font-semibold mb-10 text-white tracking-wide"
+      >
+        Willkommen im <span className="text-[#d8a5d0]">Orbit</span>
+      </motion.h1>
 
-
-      {/* --- Begrüßung --- */}
-      <section className="mb-10 animate-fade-in">
-        <h1 className="text-3xl font-bold tracking-wide">
-          Willkommen zurück,{" "}
-          <span className="text-[#d8a5d0]">{user.email}</span>
-        </h1>
-        <p className="text-gray-300 mt-1">
-          Dein persönliches Orbit Cockpit.
-        </p>
-      </section>
-
-      {/* --- Grid mit Orbit Cards --- */}
-      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-
-        {[
-          {
-            title: "Mitarbeiter",
-            text: "Übersicht über Team, Bewerber & Performance.",
-            color: "bg-[#d8a5d0]",
-            note: "Kommt bald – Mitarbeiterführung & Growth.",
-          },
-          {
-            title: "Leads",
-            text: "Lead Management & persönliche Rekrutierung.",
-            color: "bg-green-400",
-            note: "Live Tracking geplant.",
-          },
-          {
-            title: "Vertrieb & EH",
-            text: "Monatliche Einheiten, Analyse, Reportings.",
-            color: "bg-yellow-300",
-            note: "EH-Sync + Charts + Insights.",
-          },
-          {
-            title: "Kalender",
-            text: "Analysen, Beratungen, Recruiting-Termine.",
-            color: "bg-blue-400",
-            note: "TimeTree Sync geplant.",
-          },
-          {
-            title: "Bewerber Funnel",
-            text: "Vom Lead → Info → Gespräch → Onboarding.",
-            color: "bg-purple-300",
-            note: "Automatische Funnel-Analyse.",
-          },
-          {
-            title: "Einstellungen",
-            text: "Profil, Rechte, Benachrichtigungen.",
-            color: "bg-orange-300",
-            note: "Benutzerrollen folgen bald.",
-          },
-        ].map((card, i) => (
-          <div
-            key={i}
-            className="group p-6 rounded-2xl 
-              bg-white/5 border border-white/10 backdrop-blur-xl 
-              transition-all duration-300
-              hover:scale-[1.02] hover:border-[#d8a5d0]/40 
-              hover:shadow-[0_0_25px_#d8a5d055]
-              cursor-pointer animate-fade-in"
+      {/* Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+        {cards.map((card, index) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.6,
+              delay: card.delay,
+              ease: "easeOut"
+            }}
           >
-            <h2 className="text-lg font-semibold mb-2">{card.title}</h2>
-            <p className="text-sm text-gray-300 mb-4">{card.text}</p>
+            <Link href={card.href}>
+              <div
+                className="group relative rounded-2xl p-6 h-40 cursor-pointer
+                bg-black/40 backdrop-blur-xl border border-white/10
+                shadow-xl hover:shadow-[0_0_35px_#d8a5d055]
+                transition-all duration-300 overflow-hidden"
+              >
+                {/* Gradient Glow */}
+                <div
+                  className={`absolute inset-0 opacity-0 group-hover:opacity-30 
+                  bg-gradient-to-br ${card.color} blur-2xl transition-all`}
+                />
 
-            <div className="flex items-center gap-3">
-              <div className={`w-2 h-2 rounded-full ${card.color} animate-pulse`} />
-              <span className="text-xs text-gray-300">{card.note}</span>
-            </div>
-          </div>
+                {/* Title */}
+                <h2 className="text-xl font-semibold text-white relative z-10">
+                  {card.title}
+                </h2>
+
+                {/* Description */}
+                <p className="text-white/70 mt-2 text-sm relative z-10">
+                  {card.description}
+                </p>
+
+                {/* Icon */}
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: card.delay + 0.3 }}
+                  className="absolute bottom-4 right-4"
+                >
+                  <ArrowUpRight
+                    className="w-6 h-6 text-white/60 group-hover:text-white
+                    group-hover:scale-125 transition-all"
+                  />
+                </motion.div>
+              </div>
+            </Link>
+          </motion.div>
         ))}
-
-      </section>
-    </main>
+      </div>
+    </div>
   );
 }

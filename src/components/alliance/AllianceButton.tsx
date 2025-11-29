@@ -1,32 +1,34 @@
-// src/components/orbit/OrbitButton.tsx
-
 "use client";
 
-interface OrbitButtonProps {
+interface AllianceButtonProps {
   children: React.ReactNode;
   onClick?: () => void;
   type?: "button" | "submit";
-  variant?: "primary" | "secondary" | "danger";
+  variant?: "gold" | "secondary" | "danger";
   loading?: boolean;
   disabled?: boolean;
   className?: string;
 }
 
-export default function OrbitButton({
+export default function AllianceButton({
   children,
   onClick,
   type = "button",
-  variant = "primary",
+  variant = "gold",
   loading = false,
   disabled = false,
   className = "",
-}: OrbitButtonProps) {
+}: AllianceButtonProps) {
   const baseStyles =
     "px-4 py-2 rounded-xl font-semibold text-sm tracking-wide transition-all duration-150 active:scale-[0.97] flex items-center justify-center gap-2";
 
   const variants = {
-    primary:
-      "bg-gradient-to-r from-[#d8a5d0] to-[#a75692] text-black shadow-[0_0_20px_#a7569244] hover:shadow-[0_0_25px_#a7569288]",
+    gold: `
+      bg-gradient-to-r from-[#fff3c4] via-[#e4c46d] to-[#b88a2a]
+      text-black
+      shadow-[0_0_20px_rgba(255,223,148,0.35)]
+      hover:shadow-[0_0_28px_rgba(255,223,148,0.55)]
+    `,
     secondary:
       "bg-white/10 text-white hover:bg-white/20 border border-white/10",
     danger:
@@ -53,30 +55,31 @@ export default function OrbitButton({
   );
 }
 
-
-
-
 import Link from "next/link";
 
-interface OrbitButtonLinkProps {
+interface AllianceButtonLinkProps {
   href: string;
   children: React.ReactNode;
-  variant?: "primary" | "secondary" | "danger";
+  variant?: "gold" | "secondary" | "danger";
   className?: string;
 }
 
-export function OrbitButtonLink({
+export function AllianceButtonLink({
   href,
   children,
-  variant = "primary",
+  variant = "gold",
   className = "",
-}: OrbitButtonLinkProps) {
+}: AllianceButtonLinkProps) {
   const baseStyles =
     "px-4 py-2 rounded-xl font-semibold text-sm tracking-wide transition-all duration-150 active:scale-[0.97] flex items-center justify-center gap-2";
 
   const variants = {
-    primary:
-      "bg-gradient-to-r from-[#d8a5d0] to-[#a75692] text-black shadow-[0_0_20px_#a7569244] hover:shadow-[0_0_25px_#a7569288]",
+    gold: `
+      bg-gradient-to-r from-[#fff3c4] via-[#e4c46d] to-[#b88a2a]
+      text-black
+      shadow-[0_0_20px_rgba(255,223,148,0.35)]
+      hover:shadow-[0_0_28px_rgba(255,223,148,0.55)]
+    `,
     secondary:
       "bg-white/10 text-white hover:bg-white/20 border border-white/10",
     danger:

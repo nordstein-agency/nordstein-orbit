@@ -3,6 +3,9 @@
 import { usePathname } from "next/navigation";
 import { AcademySidebar } from "@/components/academy/AcademySidebar";
 import type { ReactNode } from "react";
+import { Orbit } from "lucide-react";
+import OrbitPageTransition from "@/components/orbit/OrbitPageTransitions";
+import OrbitPageTransitions from "@/components/orbit/OrbitPageTransitions";
 
 export default function AcademyLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();

@@ -29,6 +29,14 @@ export default function Navbar() {
             <Link href="/dashboard" className="orbit-nav-link">Dashboard</Link>
             <Link href="/leads" className="orbit-nav-link">Leads</Link>
             <Link href="/academy" className="orbit-nav-link">Academy</Link>
+            <Link 
+  href="/alliance" 
+  className="orbit-nav-link orbit-nav-link-alliance relative"
+>
+  Alliance
+  <span className="gold-underline"></span>
+</Link>
+
 
             
           </div>

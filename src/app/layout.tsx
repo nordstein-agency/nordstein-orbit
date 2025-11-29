@@ -1,5 +1,8 @@
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import GlobalPageTransitions from "@/components/orbit/GlobalPageTransitions";
+import GlobalPageTransition from "@/components/orbit/GlobalPageTransitions";
+import OrbitPageTransitions from "@/components/orbit/OrbitPageTransitions";
 import { OrbitToastProvider } from "@/components/orbit/OrbitToast";
 
 export const metadata = {
@@ -16,7 +19,7 @@ export default function RootLayout({
     <html lang="de">
       <body className="min-h-screen relative overflow-x-hidden bg-black">
         <OrbitToastProvider>
-          
+
         {/* ======= PERFORMANTER ORBIT TEST-BACKGROUND ======= */}
         <div className="absolute inset-0 -z-50">
           {/* Nur ein EINZIGER, super schneller Layer */}
@@ -30,7 +33,11 @@ export default function RootLayout({
         {/* ======= CONTENT ======= */}
         <div className="relative z-10">
           <Navbar />
-          <main className="pt-8">{children}</main>
+          <main className="pt-8">
+            
+            <GlobalPageTransitions>{children}</GlobalPageTransitions>
+
+          </main>
         </div>
 
         </OrbitToastProvider>

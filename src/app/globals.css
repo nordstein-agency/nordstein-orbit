@@ -49,3 +49,472 @@ body {
   50%  { transform: translateY(-10px); }
   100% { transform: translateY(0px); }
 }
+
+.orbit-nav-link-alliance {
+  background: linear-gradient(to bottom right, #fff3c4, #e4c46d, #b88a2a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent !important; /* FIX */
+  color: transparent !important;
+  position: relative;
+  text-shadow: 0 0 12px rgba(255,215,130,0.55);
+}
+
+.orbit-nav-link-alliance::after {
+  background: none !important;  /* Entfernt die lila Linie */
+  width: 0 !important;          /* Sicherstellen, dass sie nie sichtbar wird */
+  height: 0 !important;
+  box-shadow: none !important;
+}
+
+
+.orbit-nav-link-alliance:hover::after {
+  width: 100%;
+  opacity: 1;
+}
+
+.orbit-nav-link-alliance:hover {
+  text-shadow: 0 0 18px rgba(255,230,180,0.9);
+}
+
+/* GOLD UNDERLINE */
+.orbit-nav-link-alliance .gold-underline {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  height: 2px;
+  width: 0%;
+  background: linear-gradient(to right, #fff3c4, #e4c46d, #b88a2a);
+  box-shadow: 0 0 12px rgba(255,215,130,0.6);
+  transition: width 0.35s ease, opacity 0.3s ease;
+  opacity: 0.8;
+}
+
+.orbit-nav-link-alliance:hover .gold-underline {
+  width: 100%;
+  opacity: 1;
+}
+
+/* Alliance Gold Glow Animations */
+@keyframes allianceGlow {
+  0% { transform: scale(1) translateY(0px); opacity: 0.75; }
+  50% { transform: scale(1.08) translateY(-12px); opacity: 0.95; }
+  100% { transform: scale(1) translateY(0px); opacity: 0.75; }
+}
+
+@keyframes allianceGlowSlow {
+  0% { transform: scale(1) translateX(0px); opacity: 0.45; }
+  50% { transform: scale(1.04) translateX(10px); opacity: 0.65; }
+  100% { transform: scale(1) translateX(0px); opacity: 0.45; }
+}
+
+.animate-allianceGlow {
+  animation: allianceGlow 18s ease-in-out infinite;
+}
+
+.animate-allianceGlowSlow {
+  animation: allianceGlowSlow 28s ease-in-out infinite;
+}
+
+/* ============================= */
+/*   GOLD PARTICLE FIELD (ALLIANCE) */
+/* ============================= */
+
+@keyframes particleFloat {
+  0%   { transform: translateY(0px) translateX(0px) scale(1); opacity: 0.65; }
+  50%  { transform: translateY(-35px) translateX(20px) scale(1.15); opacity: 0.9; }
+  100% { transform: translateY(0px) translateX(0px) scale(1); opacity: 0.65; }
+}
+
+@keyframes particleDrift {
+  0%   { transform: translateY(0px) translateX(0px) scale(1); opacity: 0.45; }
+  50%  { transform: translateY(25px) translateX(-15px) scale(0.9); opacity: 0.7; }
+  100% { transform: translateY(0px) translateX(0px) scale(1); opacity: 0.45; }
+}
+
+.gold-particle {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(6px);
+  pointer-events: none;
+  opacity: 0.7;
+  background: radial-gradient(
+    circle,
+    rgba(255, 243, 196, 0.95),
+    rgba(180, 134, 42, 0.65)
+  );
+  box-shadow: 0 0 18px rgba(255, 215, 130, 0.45);
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/*      N O R D S T E I N   A L L I A N C E  
+        PREMIUM GOLD TECH CIRCUIT BACKGROUND
+   ───────────────────────────────────────────────────────────── */
+
+/* ========================= */
+/* 1) Circuit Grid Pattern   */
+/* ========================= */
+
+/* Front Layer: sichtbare goldene Leiterbahnen */
+.gold-circuit-layer.circuit-front {
+  position: absolute;
+  inset: 0;
+  background-size: 90px 90px;
+  background-image:
+    linear-gradient(to right, rgba(255, 210, 120, 0.35) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 210, 120, 0.35) 1px, transparent 1px);
+  opacity: 0.7;
+  animation: circuitMove 48s linear infinite;
+}
+
+/* Back Layer: größere, weichere Linien */
+.gold-circuit-layer.circuit-back {
+  position: absolute;
+  inset: 0;
+  background-size: 160px 160px;
+  background-image:
+    linear-gradient(to right, rgba(255, 220, 150, 0.22) 2px, transparent 2px),
+    linear-gradient(to bottom, rgba(255, 220, 150, 0.22) 2px, transparent 2px);
+  opacity: 0.4;
+  animation: circuitMoveBack 90s linear infinite;
+}
+
+/* Subtile Bewegung: Hintergrund driftet */
+@keyframes circuitMove {
+  0% { transform: translateX(0px) translateY(0px); }
+  100% { transform: translateX(-220px) translateY(-180px); }
+}
+
+@keyframes circuitMoveBack {
+  0% { transform: translateX(0px) translateY(0px); }
+  100% { transform: translateX(200px) translateY(240px); }
+}
+
+/* ========================= */
+/* 2) Circuit Shine Sweep    */
+/* ========================= */
+
+.circuit-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 238, 180, 0.45) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  mix-blend-mode: screen;
+  animation: circuitShineSweep 12s ease-in-out infinite;
+  opacity: 0.55;
+}
+
+@keyframes circuitShineSweep {
+  0%   { transform: translateX(-120%) translateY(-30%) skewX(-12deg); }
+  50%  { transform: translateX(120%) translateY(30%) skewX(-12deg); }
+  100% { transform: translateX(-120%) translateY(-30%) skewX(-12deg); }
+}
+
+/* ========================= */
+/* 3) Gold-Shine Title       */
+/* ========================= */
+
+.gold-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.gold-shine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 120%;
+  height: 100%;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    rgba(255, 243, 196, 0.65) 45%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(255, 243, 196, 0.65) 55%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  animation: goldShineSweep 3s ease-out infinite;
+  animation-delay: 1s; /* 1 Sekunde Pause am Anfang */
+  pointer-events: none;
+}
+
+/* Shine Sweep runs every 3 seconds */
+@keyframes goldShineSweep {
+  0%   { transform: translateX(-150%) skewX(-20deg); opacity: 0; }
+  8%   { opacity: 0.9; }
+  50%  { transform: translateX(150%) skewX(-20deg); opacity: 0.9; }
+  60%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+
+/* ========================= */
+/* 4) Alliance Section Style */
+/* ========================= */
+
+.alliance-section {
+  background: rgba(31, 22, 32, 0.65);
+  border: 1px solid rgba(44, 29, 43, 0.9);
+  padding: 32px;
+  border-radius: 22px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 28px rgba(255, 210, 120, 0.04);
+}
+
+.section-title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #f6e3c0;
+}
+
+.section-text {
+  color: #d8c6d4;
+  line-height: 1.6;
+}
+
+/* ========================= */
+/* 5) Alliance Cards         */
+/* ========================= */
+
+.alliance-card {
+  background: rgba(42, 27, 41, 0.37);
+  border: 1px solid rgba(75, 48, 74, 0.6);
+  padding: 24px;
+  border-radius: 18px;
+  transition: 0.3s ease;
+}
+
+.alliance-card:hover {
+  border-color: rgba(255, 210, 120, 0.45);
+  box-shadow: 0 0 18px rgba(255, 210, 120, 0.25);
+  transform: translateY(-3px);
+}
+
+/* ========================= */
+/* 6) Gold Particles         */
+/* ========================= */
+
+.gold-particle {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(0px);
+  opacity: 0.9;
+  background: radial-gradient(
+    circle,
+    rgba(255, 233, 202, 0.95),
+    rgba(188, 151, 52, 0.65)
+  );
+  box-shadow: 0 0 14px rgba(255, 215, 130, 0.55);
+}
+
+@keyframes particleFloat {
+  0%   { transform: translateY(0px) translateX(0px) scale(1); }
+  50%  { transform: translateY(-28px) translateX(14px) scale(1.1); }
+  100% { transform: translateY(0px) translateX(0px) scale(1); }
+}
+
+@keyframes particleDrift {
+  0%   { transform: translateX(0px) scale(1); }
+  50%  { transform: translateX(-18px) scale(0.92); }
+  100% { transform: translateX(0px) scale(1); }
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/*      N O R D S T E I N   A L L I A N C E  
+        GOLD AURORA WAVES – PREMIUM BACKGROUND
+   ───────────────────────────────────────────────────────────── */
+
+/* ============================================================= */
+/*  AURORA BASE STYLE – Grundstruktur für alle Waves            */
+/* ============================================================= */
+
+.aurora-wave {
+  position: absolute;
+  width: 240%;
+  height: 240%;
+  filter: blur(0px); /* kein blur, klare feine Linien */
+  transform-origin: center;
+  opacity: 0.32;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  background-repeat: no-repeat;
+}
+
+/* ============================================================= */
+/*  WAVE 1 — breite horizontale Gold-Welle                       */
+/* ============================================================= */
+
+.aurora-wave.wave1 {
+  top: -60%;
+  left: -40%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 231, 170, 0.65) 0%,
+    rgba(255, 191, 100, 0.32) 25%,
+    rgba(180, 120, 40, 0.15) 55%,
+    transparent 80%
+  );
+  animation: auroraWave1 33s ease-in-out infinite;
+}
+
+@keyframes auroraWave1 {
+  0%   { transform: rotate(0deg)    translateX(0px) translateY(0px) scale(1); }
+  40%  { transform: rotate(25deg)   translateX(90px) translateY(-40px) scale(1.05); }
+  100% { transform: rotate(0deg)    translateX(0px) translateY(0px) scale(1); }
+}
+
+/* ============================================================= */
+/*  WAVE 2 — diagonale Gold-Flare                                */
+/* ============================================================= */
+
+.aurora-wave.wave2 {
+  top: -30%;
+  right: -60%;
+  opacity: 0.38;
+  background: radial-gradient(
+    circle at 70% 40%,
+    rgba(255, 243, 200, 0.7) 0%,
+    rgba(230, 180, 90, 0.4) 30%,
+    rgba(180, 110, 30, 0.1) 65%,
+    transparent 85%
+  );
+  animation: auroraWave2 26s ease-in-out infinite;
+}
+
+@keyframes auroraWave2 {
+  0%   { transform: rotate(45deg)   translateX(0px) translateY(0px) scale(1); }
+  50%  { transform: rotate(55deg)   translateX(-60px) translateY(50px) scale(1.08); }
+  100% { transform: rotate(45deg)   translateX(0px) translateY(0px) scale(1); }
+}
+
+/* ============================================================= */
+/*  WAVE 3 — vertikale Sonnenflare                               */
+/* ============================================================= */
+
+.aurora-wave.wave3 {
+  bottom: -65%;
+  left: -40%;
+  opacity: 0.28;
+  background: radial-gradient(
+    circle at 40% 70%,
+    rgba(255, 233, 180, 0.7) 0%,
+    rgba(240, 190, 120, 0.35) 30%,
+    rgba(170, 110, 40, 0.12) 55%,
+    transparent 80%
+  );
+  animation: auroraWave3 29s ease-in-out infinite;
+}
+
+@keyframes auroraWave3 {
+  0%   { transform: rotate(-10deg) translateX(0px) translateY(0px) scale(1); }
+  60%  { transform: rotate(8deg)  translateX(50px) translateY(-70px) scale(1.06); }
+  100% { transform: rotate(-10deg) translateX(0px) translateY(0px) scale(1); }
+}
+
+/* ============================================================= */
+/*  GOLD SHINE SWEEP (AUTO-REPEAT)                               */
+/* ============================================================= */
+
+.gold-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.gold-shine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 120%;
+  height: 100%;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    rgba(255, 243, 196, 0.65) 45%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(255, 243, 196, 0.65) 55%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  animation: goldShineSweep 3.2s ease-out infinite;
+  animation-delay: 1.2s;
+  pointer-events: none;
+}
+
+@keyframes goldShineSweep {
+  0%   { transform: translateX(-150%) skewX(-20deg); opacity: 0; }
+  8%   { opacity: 0.9; }
+  50%  { transform: translateX(150%) skewX(-20deg); opacity: 0.9; }
+  65%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* ============================================================= */
+/*  ALLIANCE SECTION DEFAULTS                                    */
+/* ============================================================= */
+
+.alliance-section {
+  background: rgba(31, 22, 32, 0.55);
+  border: 1px solid rgba(44, 29, 43, 0.9);
+  padding: 32px;
+  border-radius: 22px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 28px rgba(255, 210, 120, 0.05);
+}
+
+.section-title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #f6e3c0;
+}
+
+.section-text {
+  color: #d8c6d4;
+  line-height: 1.6;
+}
+
+.alliance-card {
+  background: rgba(42, 27, 41, 0.37);
+  border: 1px solid rgba(75, 48, 74, 0.6);
+  padding: 24px;
+  border-radius: 18px;
+  transition: 0.3s ease;
+}
+
+.alliance-card:hover {
+  border-color: rgba(255, 210, 120, 0.45);
+  box-shadow: 0 0 18px rgba(255, 210, 120, 0.25);
+  transform: translateY(-3px);
+}
+
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes goldPulse {
+  0% {
+    filter: drop-shadow(0 0 4px rgba(255, 223, 148, 0.45))
+            drop-shadow(0 0 12px rgba(255, 223, 148, 0.25));
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgba(255, 223, 148, 0.75))
+            drop-shadow(0 0 25px rgba(255, 223, 148, 0.55));
+  }
+  100% {
+    filter: drop-shadow(0 0 4px rgba(255, 223, 148, 0.45))
+            drop-shadow(0 0 12px rgba(255, 223, 148, 0.25));
+  }
+}
+
+.glowing-orbit-logo {
+  animation: goldPulse 2.2s ease-in-out infinite;
+}

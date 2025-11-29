@@ -1,4 +1,5 @@
-// src/components/orbit/OrbitDropdown.tsx
+// src/components/alliance/AllianceDropdown.tsx
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -8,23 +9,25 @@ interface Option {
   value: string;
 }
 
-interface OrbitDropdownProps {
+interface AllianceDropdownProps {
   options: Option[];
   value: string;
   placeholder?: string;
   onChange: (value: string) => void;
 }
 
-export function OrbitDropdown({
+export function AllianceDropdown({
   options,
   value,
   placeholder,
   onChange,
-}: OrbitDropdownProps) {
+}: AllianceDropdownProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Click outside handling
+  // -------------------------------
+  // Close on click outside
+  // -------------------------------
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
@@ -39,24 +42,31 @@ export function OrbitDropdown({
 
   return (
     <div ref={ref} className="relative text-sm w-full">
-      {/* Trigger */}
+      {/* ------------------------ */}
+      {/* TRIGGER BUTTON */}
+      {/* ------------------------ */}
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="
-          w-full px-4 py-2 rounded-xl 
-          bg-black/40 border border-white/10 
+        className={`
+          w-full px-4 py-2 rounded-xl
+          bg-[#1f1620]/70 border border-[#3a2238]
           text-left text-gray-200
           flex justify-between items-center
-          hover:border-[#d8a5d0]/40 transition-all duration-150
-        "
+          hover:border-[#b88a2a]/60
+          hover:shadow-[0_0_15px_rgba(255,220,160,0.25)]
+          transition-all duration-150
+          backdrop-blur-xl
+        `}
       >
-        <span>{selectedOption ? selectedOption.label : placeholder}</span>
+        <span className={selectedOption ? "text-white" : "text-gray-400"}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
 
         {/* Arrow */}
         <span
           className={`
-            transition-transform duration-200
+            transition-transform duration-200 text-[#e4c46d]
             ${open ? "rotate-180" : ""}
           `}
         >
@@ -64,17 +74,18 @@ export function OrbitDropdown({
         </span>
       </button>
 
-      {/* Dropdown Menu */}
+      {/* ------------------------ */}
+      {/* DROPDOWN MENU */}
+      {/* ------------------------ */}
       {open && (
         <div
           className="
-            absolute left-0 right-0 mt-2 
-            bg-black/70 backdrop-blur-xl 
-            border border-white/10 
-            rounded-xl overflow-hidden 
-            shadow-[0_0_25px_#a7569233]
+            absolute left-0 right-0 mt-2 z-50
+            rounded-xl overflow-hidden
+            bg-[#1f1620]/90 backdrop-blur-xl
+            border border-[#3a2238]
+            shadow-[0_0_25px_rgba(255,230,180,0.15)]
             animate-fade-scale
-            z-50
           "
         >
           {options.map((o) => (
@@ -85,9 +96,12 @@ export function OrbitDropdown({
                 setOpen(false);
               }}
               className={`
-                w-full text-left px-4 py-2
-                hover:bg-white/10 transition-all 
-                ${o.value === value ? "text-[#d8a5d0]" : "text-gray-200"}
+                w-full text-left px-4 py-2 transition-all
+                ${
+                  o.value === value
+                    ? "bg-white/10 text-[#f3dca9]"
+                    : "text-gray-200 hover:bg-white/5 hover:text-[#e6c476]"
+                }
               `}
             >
               {o.label}
@@ -96,7 +110,9 @@ export function OrbitDropdown({
         </div>
       )}
 
-      {/* Animation Keyframes */}
+      {/* ------------------------ */}
+      {/* ANIMATION KEYFRAMES */}
+      {/* ------------------------ */}
       <style>
         {`
           @keyframes fadeScale {
