@@ -124,7 +124,7 @@ export default function LeadDetailPage() {
   try {
     // 1) Make Trigger auslösen
     const res = await fetch(
-      "https://hook.eu1.make.com/t6xab47u62278tmjqk3wekj7hl8yt9r7",
+      "https://hook.eu1.make.com/9mlgdwmvx18vryon2yvrtdii1exwlsem",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

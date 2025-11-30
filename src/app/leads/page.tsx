@@ -349,11 +349,14 @@ export default function LeadsPage() {
 
       {/* Floating Button */}
       <Link
-        href="/leads/upload"
+        href="/leads/new"
         className="fixed bottom-8 right-8 bg-[#B244FF] hover:bg-[#9A32E8] text-white px-5 py-4 rounded-full shadow-xl transition"
       >
-        <span className="font-semibold">+</span> Leads importieren
+        <span className="font-semibold">+</span> Lead anlegen
       </Link>
+
+      
+
     </div>
   );
 }

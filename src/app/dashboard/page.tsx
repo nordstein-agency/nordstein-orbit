@@ -20,9 +20,9 @@ const cards = [
     delay: 0.05
   },
   {
-    title: "Coming Soon",
-    description: "Neue Features & Module",
-    href: "/coming-soon",
+    title: "Orbit Wallet",
+    description: "Credits für KI-Tools & Premium-Funktionen",
+    href: "/wallet",
     color: "from-[#a05fb5] to-[#5a2e7e]",
     delay: 0.1
   },
