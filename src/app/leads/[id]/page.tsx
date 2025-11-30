@@ -117,40 +117,83 @@ export default function LeadDetailPage() {
   }
 
   async function handleAiScore() {
-    if (!lead) return;
+  if (!lead) return;
 
-    try {
-      const res = await fetch(
-        "https://hook.eu1.make.com/t6xab47u62278tmjqk3wekj7hl8yt9r7",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            id: lead.id,
-            company_name: lead.company_name,
-            website: lead.website,
-            email: lead.email,
-            industry: lead.industry,
-            region: lead.region,
-            ceo: lead.ceo,
-            socials: lead.socials,
-            signals: lead.signals,
-          }),
-        }
-      );
+  setAiLoading(true);
 
-      if (!res.ok) {
-        throw new Error("Webhook returned error");
+  try {
+    // 1) Make Trigger auslösen
+    const res = await fetch(
+      "https://hook.eu1.make.com/t6xab47u62278tmjqk3wekj7hl8yt9r7",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: lead.id,
+          company_name: lead.company_name,
+          website: lead.website,
+          email: lead.email,
+          industry: lead.industry,
+          region: lead.region,
+          ceo: lead.ceo,
+          socials: lead.socials,
+          signals: lead.signals,
+        }),
+      }
+    );
+
+    if (!res.ok) throw new Error("KI-WebHook Fehler");
+
+    // 2) Polling starten (alle 2s)
+    let tries = 0;
+    const MAX_TRIES = 30; // 1 Minute warten
+
+    while (tries < MAX_TRIES) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      const { data, error } = await supabase
+        .from("leads")
+        .select("*")
+        .eq("id", lead.id)
+        .single();
+
+      if (error) {
+        console.error("Supabase error:", error);
+        break;
       }
 
-      alert("Lead wird von KI analysiert. Ergebnis erscheint in Kürze!");
-    } catch (err) {
-      console.error(err);
-      alert("Fehler beim Senden an KI-Analyse.");
+      // Signals verändert? Dann refresh!
+      if (data && data.signals && JSON.stringify(data.signals) !== JSON.stringify(lead.signals)) {
+  // Lead updaten
+  setLead(data);
+
+  // SCORE aus Supabase übernehmen
+  setScore({
+    total: data.score ?? 0,
+    breakdown: score?.breakdown ?? {
+      industry: 0,
+      region: 0,
+      signals: 0,
+      ceo: 0,
+      manual: 0,
+    },
+  });
+
+  setAiLoading(false);
+  return;
+}
+
+
+      tries++;
     }
+
+    setAiLoading(false);
+  } catch (err) {
+    console.error(err);
+    setAiLoading(false);
   }
+}
+
 
   // ---------------------
   // Enrichment via API
@@ -280,9 +323,21 @@ try {
             <OrbitButton className="w-40">← Zurück</OrbitButton>
           </Link>
 
-          <AllianceButton onClick={handleAiScore} className="w-40">
-            Bewerten (KI)
-          </AllianceButton>
+          <AllianceButton
+  onClick={handleAiScore}
+  className="w-40"
+  disabled={aiLoading}
+>
+  {aiLoading ? (
+    <div className="flex items-center justify-center gap-2">
+      <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+      Analysiere…
+    </div>
+  ) : (
+    "Bewerten (KI)"
+  )}
+</AllianceButton>
+
 
           <Link href={`/leads/${id}/edit`}>
             <OrbitButton className="w-40 bg-blue-600 hover:bg-blue-500">
