@@ -1,6 +1,7 @@
 import { getStripePrices } from "@/actions/getStripePrices";
 import { createCheckoutSession } from "@/actions/createCheckoutSession";
 import { redirect } from "next/navigation";
+import OrbitButton from "@/components/orbit/OrbitButton";
 
 
 export default async function BuyCreditsPage() {
@@ -27,12 +28,12 @@ export default async function BuyCreditsPage() {
               <p className="text-white/70 mt-2">{p.amount} €</p>
             </div>
 
-            <button
+            <OrbitButton
               type="submit"
               className="mt-6 w-full bg-[#B244FF] hover:bg-[#9A32E0] text-white py-3 rounded-xl font-semibold transition"
             >
               Kaufen
-            </button>
+            </OrbitButton>
           </form>
         ))}
       </div>
