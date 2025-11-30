@@ -6,6 +6,7 @@ import Link from "next/link";
 import OrbitButton from "@/components/orbit/OrbitButton";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { scoreLead } from "@/lib/leadScore";
+import AllianceButton from "@/components/alliance/AllianceButton";
 
 // ---------------------
 // Lead Typ
@@ -27,6 +28,8 @@ export type Lead = {
   socials: any | null;
   ceo: string | null;
   manual_score?: number | null;
+  ai_strategy?: string | null;
+  notes?: string | null;
 };
 
 // ---------------------
@@ -55,6 +58,9 @@ export default function LeadDetailPage() {
   const [scoreLoading, setScoreLoading] = useState(false);
   const [enrichLoading, setEnrichLoading] = useState(false);
 
+  const [aiLoading, setAiLoading] = useState(false);
+
+
   // ---------------------
   // Load lead
   // ---------------------
@@ -74,7 +80,20 @@ export default function LeadDetailPage() {
 
       const typedLead = data as Lead;
       setLead(typedLead);
-      setScore(scoreLead(typedLead));
+
+      const dbScore = typedLead.score ?? 0;
+
+      setScore({
+        total: dbScore,
+        breakdown: {
+          industry: 0,
+          region: 0,
+          signals: 0,
+          ceo: 0,
+          manual: 0,
+        },
+      });
+
       setLoading(false);
     }
 
@@ -97,41 +116,41 @@ export default function LeadDetailPage() {
     setScoreLoading(false);
   }
 
-
   async function handleAiScore() {
-  if (!lead) return;
+    if (!lead) return;
 
-  try {
-    const res = await fetch("https://hook.eu1.make.com/t6xab47u62278tmjqk3wekj7hl8yt9r7", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        id: lead.id,
-        company_name: lead.company_name,
-        website: lead.website,
-        email: lead.email,
-        industry: lead.industry,
-        region: lead.region,
-        ceo: lead.ceo,
-        socials: lead.socials,
-        signals: lead.signals,
-      }),
-    });
+    try {
+      const res = await fetch(
+        "https://hook.eu1.make.com/t6xab47u62278tmjqk3wekj7hl8yt9r7",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: lead.id,
+            company_name: lead.company_name,
+            website: lead.website,
+            email: lead.email,
+            industry: lead.industry,
+            region: lead.region,
+            ceo: lead.ceo,
+            socials: lead.socials,
+            signals: lead.signals,
+          }),
+        }
+      );
 
-    if (!res.ok) {
-      throw new Error("Webhook returned error");
+      if (!res.ok) {
+        throw new Error("Webhook returned error");
+      }
+
+      alert("Lead wird von KI analysiert. Ergebnis erscheint in Kürze!");
+    } catch (err) {
+      console.error(err);
+      alert("Fehler beim Senden an KI-Analyse.");
     }
-
-    alert("Lead wird von KI analysiert. Ergebnis erscheint in Kürze!");
-  } catch (err) {
-    console.error(err);
-    alert("Fehler beim Senden an KI-Analyse.");
   }
-}
-
-
 
   // ---------------------
   // Enrichment via API
@@ -165,13 +184,9 @@ export default function LeadDetailPage() {
           ...(lead.socials ?? {}),
           ...(enriched.socials ?? {}),
         },
-        signals: {
-          ...(lead.signals ?? {}),
-          ...(enriched.signals ?? {}),
-        },
+        signals: enriched.signals ?? lead.signals,
       };
 
-      // In Supabase speichern
       const { error } = await supabase
         .from("leads")
         .update({
@@ -190,7 +205,6 @@ export default function LeadDetailPage() {
         return;
       }
 
-      // State aktualisieren
       setLead(updatedLead);
       setScore(scoreLead(updatedLead));
     } catch (e) {
@@ -211,6 +225,29 @@ export default function LeadDetailPage() {
   if (!lead) {
     return <div className="p-10 text-red-400">Lead nicht gefunden.</div>;
   }
+
+  // ---------------------
+  // AI JSON sauber parsen
+  // ---------------------
+  // AI JSON sicher parsen, egal ob String, Objekt, null oder undefined
+let ai: any = {};
+
+try {
+  if (!lead.signals) {
+    ai = {};
+  } else if (typeof lead.signals === "string") {
+    ai = JSON.parse(lead.signals);
+  } else if (typeof lead.signals === "object") {
+    ai = lead.signals; // bereits geparst aus der DB
+  } else {
+    ai = {};
+  }
+} catch (err) {
+  console.error("AI JSON PARSE ERROR:", err);
+  ai = {};
+}
+
+    // ---------------------
 
   return (
     <div className="pt-16 pl-12 pr-8 max-w-5xl space-y-10">
@@ -239,28 +276,20 @@ export default function LeadDetailPage() {
 
         {/* Buttons rechts */}
         <div className="flex flex-col gap-3 items-end">
-  <Link href="/leads">
-    <OrbitButton className="w-40">← Zurück</OrbitButton>
-  </Link>
+          <Link href="/leads">
+            <OrbitButton className="w-40">← Zurück</OrbitButton>
+          </Link>
 
-  <OrbitButton onClick={handleAiScore} className="w-40">
-    Bewerten (KI)
-  </OrbitButton>
+          <AllianceButton onClick={handleAiScore} className="w-40">
+            Bewerten (KI)
+          </AllianceButton>
 
-  <OrbitButton
-    onClick={handleEnrich}
-    disabled={enrichLoading}
-    className="w-40 bg-emerald-600 hover:bg-emerald-500"
-  >
-    {enrichLoading ? "Enrichen…" : "Enrich"}
-  </OrbitButton>
-
-  <Link href={`/leads/${id}/edit`}>
-    <OrbitButton className="w-40 bg-blue-600 hover:bg-blue-500">
-      Bearbeiten
-    </OrbitButton>
-  </Link>
-</div>
+          <Link href={`/leads/${id}/edit`}>
+            <OrbitButton className="w-40 bg-blue-600 hover:bg-blue-500">
+              Bearbeiten
+            </OrbitButton>
+          </Link>
+        </div>
       </div>
 
       {/* SCORE BADGE */}
@@ -284,9 +313,12 @@ export default function LeadDetailPage() {
           <p className="text-white/70">Adresse: {String(lead.address ?? "—")}</p>
         </div>
 
-        {/* Contact Info */}
+        {/* Contact Info (CEO hier rein) */}
         <div className="p-6 rounded-xl bg-white/5 border border-white/10">
           <h2 className="text-xl text-white mb-4">Kontakt</h2>
+          <p className="text-white/70">
+            CEO: {String(lead.ceo ?? "Keine Angabe")}
+          </p>
           <p className="text-white/70">E-Mail: {String(lead.email ?? "—")}</p>
           <p className="text-white/70">Telefon: {String(lead.phone ?? "—")}</p>
         </div>
@@ -314,44 +346,134 @@ export default function LeadDetailPage() {
           </div>
         )}
 
-        {/* CEO Info */}
-        <div className="p-6 rounded-xl bg-white/5 border border-white/10">
-          <h2 className="text-xl text-white mb-3">CEO / Founder</h2>
-          <p className="text-white/70">{String(lead.ceo ?? "Keine Angabe")}</p>
+        {/* 🔥 AI SALES STRATEGY – ersetzt "Signals" */}
+        <div className="p-6 rounded-xl bg-white/5 border border-white/10 md:col-span-2">
+          <h2 className="text-xl text-white mb-3">AI Sales Strategy</h2>
 
-          <div className="mt-3 space-y-1 text-sm text-white/60">
-            {lead.socials?.linkedin && (
-              <a
-                href={lead.socials.linkedin}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline block"
-              >
-                LinkedIn
-              </a>
-            )}
-            {lead.socials?.instagram && (
-              <a
-                href={lead.socials.instagram}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline block"
-              >
-                Instagram
-              </a>
-            )}
-          </div>
+          {!lead.signals && (
+            <p className="text-white/60">Noch keine KI-Analyse durchgeführt…</p>
+          )}
+
+          {ai && (
+            <div className="space-y-4 text-white/70 text-sm whitespace-pre-wrap">
+
+              {ai.score_0_100 && (
+                <div className="text-4xl font-bold text-white mb-4">
+                  {ai.score_0_100}/100
+                </div>
+              )}
+
+              {ai.auffindbarkeit && (
+                <div>
+                  <p className="text-white/40 uppercase text-xs">Auffindbarkeit</p>
+                  <p>{ai.auffindbarkeit}</p>
+                </div>
+              )}
+
+              {ai.social_media && (
+                <div>
+                  <p className="text-white/40 uppercase text-xs">Social Media</p>
+                  <p>{ai.social_media}</p>
+                </div>
+              )}
+
+              {ai.content_quality && (
+                <div>
+                  <p className="text-white/40 uppercase text-xs">
+                    Content Qualität
+                  </p>
+                  <p>{ai.content_quality}</p>
+                </div>
+              )}
+
+              {ai.website_quality && (
+                <div>
+                  <p className="text-white/40 uppercase text-xs">
+                    Website Qualität
+                  </p>
+                  <p>{ai.website_quality}</p>
+                </div>
+              )}
+
+              {ai.tracking && (
+                <div>
+                  <p className="text-white/40 uppercase text-xs">Tracking</p>
+                  <p>{ai.tracking}</p>
+                </div>
+              )}
+
+              {ai.funnel && (
+                <div>
+                  <p className="text-white/40 uppercase text-xs">Funnel</p>
+                  <p>{ai.funnel}</p>
+                </div>
+              )}
+
+              {ai.kauf_signale && (
+                <div>
+                  <p className="text-white/40 uppercase text-xs">
+                    Kaufbereitschaft
+                  </p>
+                  <p>{ai.kauf_signale}</p>
+                </div>
+              )}
+
+              {ai.agenturbindung && (
+                <div>
+                  <p className="text-white/40 uppercase text-xs">Agenturbindung</p>
+                  <p>{ai.agenturbindung}</p>
+                </div>
+              )}
+
+              {ai.entscheider && (
+                <div>
+                  <p className="text-white/40 uppercase text-xs">Entscheider</p>
+                  <p>{ai.entscheider}</p>
+                </div>
+              )}
+
+              {ai.budget_indikator && (
+                <div>
+                  <p className="text-white/40 uppercase text-xs">
+                    Budgetindikator
+                  </p>
+                  <p>{ai.budget_indikator}</p>
+                </div>
+              )}
+
+              {ai.schwachstellen && (
+                <div>
+                  <p className="text-white/40 uppercase text-xs">Schwachstellen</p>
+                  <p>{ai.schwachstellen}</p>
+                </div>
+              )}
+
+              {ai.pitch_ansatz && (
+                <div className="pt-4 border-t border-white/10">
+                  <p className="text-white/40 uppercase text-xs">
+                    Pitch Ansatz
+                  </p>
+                  <p className="text-white">{ai.pitch_ansatz}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* Signals */}
-        <div className="p-6 rounded-xl bg-white/5 border border-white/10">
-          <h2 className="text-xl text-white mb-3">Signals</h2>
-          <pre className="text-white/70 text-sm whitespace-pre-wrap">
-            {String(JSON.stringify(lead.signals ?? {}, null, 2))}
-          </pre>
+      {/* ZUSÄTZLICHE KARTEN */}
+      <div className="grid grid-cols-1 gap-8">
+        {/* AI STRATEGY (Text aus DB bleibt unverändert) */}
+        
+
+        {/* Notizen */}
+        <div className="mb-24 p-6 rounded-xl bg-white/5 border border-white/10">
+          <h2 className="text-xl text-white mb-3">Notizen</h2>
+          <p className="text-white/70 whitespace-pre-wrap">
+            {String(lead.notes ?? "Keine Notizen vorhanden...")}
+          </p>
         </div>
       </div>
     </div>
   );
 }
- 
