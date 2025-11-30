@@ -3,8 +3,7 @@
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-11-17.clover",
-
+  apiVersion: "2025-11-17.clover",
 });
 
 export async function getStripePrices() {
@@ -13,15 +12,22 @@ export async function getStripePrices() {
     expand: ["data.product"],
   });
 
-  // Nur "Orbit Credits" Produkt filtern
-  const orbitPrices = prices.data.filter(
-    (p) => p.product && (p.product as any).name === "Orbit Credits"
-  );
+  const orbitPrices = prices.data
+    .filter((p) => (p.product as any)?.name === "Orbit Credits")
+    .map((p) => {
+      const lookup = p.lookup_key?.[0] || "";
 
-  return orbitPrices.map((p) => ({
-    id: p.id,
-    amount: (p.unit_amount || 0) / 100, // Preis in €
-    credits: Number(p.metadata.credits || 0),
-    name: (p.product as any).name,
-  }));
+      const credits = lookup.startsWith("credits_")
+        ? Number(lookup.replace("credits_", ""))
+        : 0;
+
+      return {
+        id: p.id,
+        amount: (p.unit_amount || 0) / 100,
+        credits,
+        lookup_key: lookup,
+      };
+    });
+
+  return orbitPrices;
 }
