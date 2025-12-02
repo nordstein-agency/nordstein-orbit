@@ -17,7 +17,7 @@ export default function Navbar() {
 
         {/* LOGO */}
         <Link 
-          href="/" 
+          href="/dashboard" 
           className="text-2xl font-bold tracking-wider text-white hover:text-[#e6c7df] transition"
         >
           ORBIT
@@ -54,7 +54,7 @@ export default function Navbar() {
           </Link>
         ) : (
           <Link 
-            href="/login" 
+            href="/dashboard" 
             className="orbit-nav-link"
           >
             Login
