@@ -16,12 +16,26 @@ export async function createServerSupabase() {
         },
         set(name: string, value: string, options: any) {
           try {
-            cookieStore.set({ name, value, ...options });
+            cookieStore.set({
+              name,
+              value,
+              ...options,
+              domain: ".nordstein-agency.com", // 🔥 KEY FOR SSO
+              path: "/",
+              sameSite: "lax",
+            });
           } catch {}
         },
         remove(name: string, options: any) {
           try {
-            cookieStore.set({ name, value: "", ...options });
+            cookieStore.set({
+              name,
+              value: "",
+              ...options,
+              domain: ".nordstein-agency.com", // 🔥 KEY FOR SSO
+              path: "/",
+              maxAge: 0,
+            });
           } catch {}
         },
       },

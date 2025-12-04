@@ -1,3 +1,5 @@
+/*
+
 "use client";
 
 import { useState } from "react";
@@ -33,7 +35,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 pt-24"> 
-      {/* pt-24 = Abstand nach unten, damit Navbar NICHT überlappt */}
 
       <div className="w-full max-w-md p-8 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-xl 
       hover:shadow-[0_0_25px_#451a3d55] transition-all">
@@ -44,7 +45,6 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-5">
           
-          {/* EMAIL */}
           <div>
             <label className="block text-sm text-gray-300 mb-1">E-Mail</label>
             <input
@@ -58,7 +58,6 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* PASSWORT */}
           <div>
             <label className="block text-sm text-gray-300 mb-1">Passwort</label>
             <input
@@ -72,14 +71,12 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* ERROR */}
           {message && (
             <p className="text-center text-red-400 bg-red-900/30 p-2 rounded-lg border border-red-800/30 text-sm">
               {message}
             </p>
           )}
 
-          {/* ORBIT LOGIN BUTTON */}
           <button
             type="submit"
             disabled={loading}
@@ -96,4 +93,14 @@ export default function LoginPage() {
       </div>
     </div>
   );
+}
+
+*/
+
+import { redirect } from "next/navigation";
+
+export default function OrbitLogin() {
+  // Temporäre Lösung für SSO-Tests:
+  // Orbit darf NICHT selbst einloggen → immer zu Start weiterleiten.
+  redirect("https://start.nordstein-agency.com/login?from=orbit");
 }
