@@ -1,4 +1,4 @@
-/*
+
 
 "use client";
 
@@ -95,8 +95,10 @@ export default function LoginPage() {
   );
 }
 
-*/
 
+
+
+/*
 import { redirect } from "next/navigation";
 
 export default function OrbitLogin() {
@@ -104,3 +106,4 @@ export default function OrbitLogin() {
   // Orbit darf NICHT selbst einloggen → immer zu Start weiterleiten.
   redirect("http://localhost:3000/login?from=orbit");
 }
+*/
