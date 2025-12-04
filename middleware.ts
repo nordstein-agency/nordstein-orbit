@@ -108,7 +108,7 @@ export async function middleware(req: NextRequest) {
 
   // 🚫 Orbit darf KEIN eigenes Login mehr haben - redirect zu Start
   if (path.startsWith("/login") || path.startsWith("/auth")) {
-    return NextResponse.redirect("https://start.nordstein-agency.com/login?from=orbit");
+    return NextResponse.redirect("http://localhost:3000/login?from=orbit");
   }
 
   // Session prüfen
@@ -117,7 +117,7 @@ export async function middleware(req: NextRequest) {
 
   // ❌ Nicht eingeloggt → zurück zum Start-Login
   if (!session) {
-    return NextResponse.redirect("https://start.nordstein-agency.com/login?from=orbit");
+    return NextResponse.redirect("http://localhost:3000/login?from=orbit");
   }
 
   // ✔ Eingeloggt → weiter

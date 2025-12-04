@@ -102,5 +102,5 @@ import { redirect } from "next/navigation";
 export default function OrbitLogin() {
   // Temporäre Lösung für SSO-Tests:
   // Orbit darf NICHT selbst einloggen → immer zu Start weiterleiten.
-  redirect("https://start.nordstein-agency.com/login?from=orbit");
+  redirect("http://localhost:3000/login?from=orbit");
 }
