@@ -1,3 +1,5 @@
+/*
+
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
@@ -61,10 +63,10 @@ export const config = {
     "/((?!_next|static|.*\\..*|favicon.ico).*)",
   ],
 };
+*/
 
 
 
-/*
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
@@ -128,4 +130,3 @@ export const config = {
   matcher: ["/((?!_next|static|.*\\..*|favicon.ico).*)"],
 };
 
-*/

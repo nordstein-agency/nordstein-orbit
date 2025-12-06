@@ -1,4 +1,4 @@
-
+/*
 
 "use client";
 
@@ -94,16 +94,15 @@ export default function LoginPage() {
     </div>
   );
 }
+*/
 
 
 
 
-/*
 import { redirect } from "next/navigation";
 
 export default function OrbitLogin() {
   // Temporäre Lösung für SSO-Tests:
   // Orbit darf NICHT selbst einloggen → immer zu Start weiterleiten.
-  redirect("http://localhost:3000/login?from=orbit");
+  redirect("http://start.nordstein-agency.com/login?from=orbit");
 }
-*/
