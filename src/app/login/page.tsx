@@ -99,10 +99,6 @@ export default function LoginPage() {
 
 
 
-import { redirect } from "next/navigation";
-
 export default function OrbitLogin() {
-  // Temporäre Lösung für SSO-Tests:
-  // Orbit darf NICHT selbst einloggen → immer zu Start weiterleiten.
-  redirect("http://start.nordstein-agency.com/login?from=orbit");
+  return <></>; // nichts tun – keine Redirects
 }
