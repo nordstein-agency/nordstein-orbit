@@ -66,16 +66,16 @@ export const config = {
 */
 
 
-
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next({
-    request: { headers: req.headers }
+    request: { headers: req.headers },
   });
 
+  // Detect Dev/Prod environment
   const isDev = process.env.NODE_ENV === "development";
   const startLoginUrl = isDev
     ? "http://localhost:3000/login?from=orbit"
@@ -92,7 +92,7 @@ export async function middleware(req: NextRequest) {
         set(name: string, value: string, options: any) {
           res.cookies.set(name, value, {
             ...options,
-            domain: ".nordstein-agency.com",
+            domain: ".nordstein-agency.com", // SSO COOKIE DOMAIN
             path: "/",
             sameSite: "lax",
           });
@@ -111,22 +111,26 @@ export async function middleware(req: NextRequest) {
 
   const path = req.nextUrl.pathname;
 
-  // Orbit darf kein eigenes Login haben → redirect zu Start (Dev oder Prod)
+  // Orbit darf KEIN eigenes Login haben → immer zu Start weiterleiten
   if (path.startsWith("/login") || path.startsWith("/auth")) {
-    return NextResponse.redirect(startLoginUrl);
+    return NextResponse.redirect(new URL(startLoginUrl, req.url));
   }
 
   // Session prüfen
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
+  // Keine Session? → Weiterleiten zu Start Login Page
   if (!session) {
-    return NextResponse.redirect(startLoginUrl);
+    return NextResponse.redirect(new URL(startLoginUrl, req.url));
   }
 
+  // Session vorhanden → Seite normal laden
   return res;
 }
 
+// Alle Routen schützen außer static files und next internals
 export const config = {
   matcher: ["/((?!_next|static|.*\\..*|favicon.ico).*)"],
 };
-
