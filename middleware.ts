@@ -75,6 +75,9 @@ export async function middleware(req: NextRequest) {
     request: { headers: req.headers },
   });
 
+  console.log("ORBIT_COOKIES", req.cookies.getAll());
+
+
   // Detect Dev/Prod environment
   const isDev = process.env.NODE_ENV === "development";
   const startLoginUrl = isDev
@@ -120,6 +123,9 @@ export async function middleware(req: NextRequest) {
   const {
     data: { session },
   } = await supabase.auth.getSession();
+
+  console.log("ORBIT_SESSION", session);
+
 
   // Keine Session? → Weiterleiten zu Start Login Page
   if (!session) {
