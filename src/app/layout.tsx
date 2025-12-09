@@ -35,7 +35,11 @@ export default function RootLayout({
           <Navbar />
           <main className="pt-8">
             
-            <GlobalPageTransitions>{children}</GlobalPageTransitions>
+            <GlobalPageTransitions>
+              
+              {children}
+              
+              </GlobalPageTransitions>
 
           </main>
         </div>

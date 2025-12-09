@@ -35,4 +35,4 @@ export async function getStripePrices() {
       name: (p.product as any).name,
     };
   });
-}
+}   
