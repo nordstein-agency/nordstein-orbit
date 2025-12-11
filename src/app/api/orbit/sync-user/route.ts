@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// ONE → Auth-Projekt
-const one = createClient(
-  process.env.NEXT_PUBLIC_ONE_SUPABASE_URL!,
-  process.env.SUPABASE_ONE_SERVICE_ROLE_KEY!
-);
-
-// ORBIT → Datenbank
-const orbit = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function POST(req: NextRequest) {
   try {
+    // 🔐 Clients NUR ZUR RUNTIME bauen
+    const one = createClient(
+      process.env.NEXT_PUBLIC_ONE_SUPABASE_URL!,
+      process.env.SUPABASE_ONE_SERVICE_ROLE_KEY!
+    );
+
+    const orbit = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     const { auth_id } = await req.json();
 
     if (!auth_id) {
@@ -32,7 +31,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "ONE user not found" }, { status: 404 });
     }
 
-    // 2️⃣ PRÜFEN OB USER IN ORBIT EXISTIERT
+    // 2️⃣ ORBIT EXISTENZ PRÜFEN
     const { data: orbitExisting, error: orbitSelectError } = await orbit
       .from("users")
       .select("id")
@@ -40,29 +39,31 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (orbitSelectError && orbitSelectError.code !== "PGRST116") {
-      return NextResponse.json({ error: orbitSelectError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: orbitSelectError.message },
+        { status: 500 }
+      );
     }
 
     const orbitId = orbitExisting?.id ?? null;
 
     // 3️⃣ LEADER MAPPING
-    let leaderOrbitId = null;
+    let leaderOrbitId: string | null = null;
 
     if (oneUser.leader) {
-      const { data: leaderOrbit, error: leaderErr } = await orbit
+      const { data: leaderOrbit } = await orbit
         .from("users")
         .select("id")
         .eq("auth_id", oneUser.leader)
         .single();
 
-      if (!leaderErr && leaderOrbit) {
+      if (leaderOrbit) {
         leaderOrbitId = leaderOrbit.id;
       }
     }
 
-    // 4️⃣ INSERT oder UPDATE
+    // 4️⃣ INSERT ODER UPDATE
     if (!orbitId) {
-      // Insert
       const { data: insertData, error: insertError } = await orbit
         .from("users")
         .insert({
@@ -71,16 +72,22 @@ export async function POST(req: NextRequest) {
           last_name: oneUser.last_name,
           email: oneUser.email,
           role: oneUser.role,
-          leader: leaderOrbitId
+          leader: leaderOrbitId,
         })
         .select("id")
         .single();
 
       if (insertError) {
-        return NextResponse.json({ error: insertError.message }, { status: 500 });
+        return NextResponse.json(
+          { error: insertError.message },
+          { status: 500 }
+        );
       }
 
-      return NextResponse.json({ success: true, orbit_id: insertData.id });
+      return NextResponse.json({
+        success: true,
+        orbit_id: insertData.id,
+      });
     }
 
     // Update
@@ -91,19 +98,27 @@ export async function POST(req: NextRequest) {
         last_name: oneUser.last_name,
         email: oneUser.email,
         role: oneUser.role,
-        leader: leaderOrbitId
+        leader: leaderOrbitId,
       })
       .eq("id", orbitId)
       .select("id")
       .single();
 
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: updateError.message },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ success: true, orbit_id: updateData.id });
-
+    return NextResponse.json({
+      success: true,
+      orbit_id: updateData.id,
+    });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message ?? "Unknown error" },
+      { status: 500 }
+    );
   }
 }
