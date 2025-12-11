@@ -1,3 +1,4 @@
+/*
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
@@ -66,84 +67,77 @@ export const config = {
   ],
 };
 
+*/
+
+
+// ============= SSO VERSION ========================
 
 
 
 
-/*
+
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next({
-    request: { headers: req.headers },
-  });
+  const path = req.nextUrl.pathname;
 
-  console.log("ORBIT_COOKIES", req.cookies.getAll());
+  // Public routes in Orbit
+  const publicPaths = ["/api/public", "/_next", "/favicon.ico"];
+  if (publicPaths.some((p) => path.startsWith(p))) {
+    return NextResponse.next();
+  }
 
-
-  // Detect Dev/Prod environment
-  const isDev = process.env.NODE_ENV === "development";
-  const startLoginUrl = isDev
-    ? "http://localhost:3000/login?from=orbit"
-    : "https://start.nordstein-agency.com/login?from=orbit";
+  const res = NextResponse.next({ request: { headers: req.headers } });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_ONE_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_ONE_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return req.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
+        get: (name) => req.cookies.get(name)?.value,
+        set: (name, value, opts) => {
           res.cookies.set(name, value, {
-            ...options,
-            domain: ".nordstein-agency.com", // SSO COOKIE DOMAIN
-            path: "/",
-            sameSite: "lax",
-          });
-        },
-        remove(name: string, options: any) {
-          res.cookies.set(name, "", {
-            ...options,
+            ...opts,
             domain: ".nordstein-agency.com",
             path: "/",
+            sameSite: "lax",
+            secure: true,
+          });
+        },
+        remove: (name, opts) => {
+          res.cookies.set(name, "", {
+            ...opts,
             maxAge: 0,
+            domain: ".nordstein-agency.com",
+            path: "/",
+            sameSite: "lax",
+            secure: true,
           });
         },
       },
     }
   );
 
-  const path = req.nextUrl.pathname;
+  // Besser als getSession(): getUser() prüft den User “sauberer”
+  const { data: { user } } = await supabase.auth.getUser();
 
-  // Orbit darf KEIN eigenes Login haben → immer zu Start weiterleiten
-  if (path.startsWith("/login") || path.startsWith("/auth")) {
-    return NextResponse.redirect(new URL(startLoginUrl, req.url));
+  if (!user) {
+    const returnTo = encodeURIComponent(req.nextUrl.href);
+    const startLogin =
+      process.env.NODE_ENV === "development"
+        ? `http://localhost:3000/login?returnTo=${returnTo}`
+        : `https://start.nordstein-agency.com/login?returnTo=${returnTo}`;
+
+    return NextResponse.redirect(startLogin);
   }
 
-  // Session prüfen
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  console.log("ORBIT_SESSION", session);
-
-
-  // Keine Session? → Weiterleiten zu Start Login Page
-  if (!session) {
-    return NextResponse.redirect(new URL(startLoginUrl, req.url));
-  }
-
-  // Session vorhanden → Seite normal laden
   return res;
 }
 
-// Alle Routen schützen außer static files und next internals
 export const config = {
   matcher: ["/((?!_next|static|.*\\..*|favicon.ico).*)"],
 };
 
-*/
+
