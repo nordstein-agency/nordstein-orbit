@@ -97,25 +97,7 @@ export default function AlliancePage() {
       {/* ========================== */}
       {/* 🔥 Section 3 — Roadmap */}
       {/* ========================== */}
-      <AllianceSection>
-        <AllianceHeading>Alliance Roadmap in Orbit</AllianceHeading>
-
-        <ul className="space-y-3 text-[#d3c4d1] leading-relaxed">
-          <li>• <strong>Partner-Directory</strong></li>
-          <li>• <strong>Match-Making Engine</strong></li>
-          <li>• <strong>Service Hub</strong></li>
-          <li>• <strong>Upsell-Alerts (KI)</strong></li>
-          <li>• <strong>Analytics</strong></li>
-          <li>• <strong>Partner Contracts</strong></li>
-        </ul>
-
-        <Link 
-          href="/dashboard"
-          className="inline-block mt-6 px-6 py-3 bg-[#451a3d] hover:bg-[#5b2b52] transition rounded-lg font-semibold text-white"
-        >
-          Zurück zum Dashboard
-        </Link>
-      </AllianceSection>
+      
 
     </AllianceLayout>
   );

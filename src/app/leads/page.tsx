@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { createSupabaseAuthClient } from "@/lib/supabase/authClient";
 import OrbitButton from "@/components/orbit/OrbitButton";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -25,8 +25,8 @@ type Lead = {
   ceo: string | null;
 };
 
-export default function LeadsPage() {
-  const supabase = createSupabaseBrowserClient();
+export default function LeadsUploadPage() {
+  const authClient = createSupabaseAuthClient();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -49,29 +49,40 @@ export default function LeadsPage() {
   const PAGE_SIZE = 20;
 
   // ---------------------------
-  // Load User + Leads
+  // Load User + Leads (via API)
   // ---------------------------
   useEffect(() => {
     async function load() {
       setLoading(true);
 
+      // Auth aus ONE
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await authClient.auth.getUser();
 
       if (!user) {
+        console.error("No ONE user found");
         setLeads([]);
+        setLoading(false);
         return;
       }
+
       setCurrentUserId(user.id);
 
-      const { data, error } = await supabase
-        .from("leads")
-        .select("*")
-        .order("created_at", { ascending: false });
+      // Leads aus Orbit-API
+      const res = await fetch("/api/orbit/get/leads", {
+        method: "GET",
+        cache: "no-store",
+      });
 
-      if (error) console.error(error);
+      if (!res.ok) {
+        console.error("Lead API Error:", res.status);
+        setLeads([]);
+        setLoading(false);
+        return;
+      }
 
+      const data = await res.json();
       setLeads(data ?? []);
       setLoading(false);
     }
@@ -87,12 +98,10 @@ export default function LeadsPage() {
   const processedLeads = useMemo(() => {
     let out = [...leads];
 
-    // Filter "Nur eigene"
     if (onlyOwn && currentUserId) {
       out = out.filter((l) => l.owner === currentUserId);
     }
 
-    // Search
     if (searchTerm.trim() !== "") {
       const term = searchTerm.toLowerCase();
       out = out.filter((l) =>
@@ -109,12 +118,10 @@ export default function LeadsPage() {
       );
     }
 
-    // Industry filter
     if (industryFilter) {
       out = out.filter((l) => l.industry === industryFilter);
     }
 
-    // Region filter
     if (regionFilter) {
       out = out.filter((l) => l.region === regionFilter);
     }
@@ -126,7 +133,6 @@ export default function LeadsPage() {
 
       if (A == null) return 1;
       if (B == null) return -1;
-
       if (A < B) return sortDir === "asc" ? -1 : 1;
       if (A > B) return sortDir === "asc" ? 1 : -1;
       return 0;
@@ -144,16 +150,13 @@ export default function LeadsPage() {
     sortDir,
   ]);
 
-  // -------------------------------------------------------
   // Pagination
-  // -------------------------------------------------------
   const totalPages = Math.ceil(processedLeads.length / PAGE_SIZE);
   const paginatedLeads = processedLeads.slice(
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE
   );
 
-  // Reset page on filter/sort changes
   useEffect(() => {
     setPage(1);
   }, [searchTerm, industryFilter, regionFilter, sortField, sortDir, onlyOwn]);
@@ -161,6 +164,7 @@ export default function LeadsPage() {
   // -------------------------------------------------------
   return (
     <div className="px-6 pt-16 py-10 space-y-10 max-w-5xl mx-auto relative">
+
       {/* Tabs */}
       <div className="flex items-center gap-6 border-b border-white/10 pb-3">
         <button
@@ -206,7 +210,7 @@ export default function LeadsPage() {
 
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Search */}
+
         <input
           type="text"
           placeholder="Suchen (Firma, Website, Branche, Region...)"
@@ -215,28 +219,26 @@ export default function LeadsPage() {
           className="w-full px-4 py-2 rounded-xl bg-black/40 border border-white/10 text-white placeholder-white/40"
         />
 
-        {/* Industry */}
         <OrbitDropdown
           value={industryFilter}
           placeholder="Branche"
           options={[
             { label: "Alle Branchen", value: "" },
-            ...Array.from(new Set(leads.map((l) => l.industry).filter(Boolean))).map(
-              (i) => ({ label: i!, value: i! })
-            ),
+            ...Array.from(
+              new Set(leads.map((l) => l.industry).filter(Boolean))
+            ).map((i) => ({ label: i!, value: i! })),
           ]}
           onChange={setIndustryFilter}
         />
 
-        {/* Region */}
         <OrbitDropdown
           value={regionFilter}
           placeholder="Region"
           options={[
             { label: "Alle Regionen", value: "" },
-            ...Array.from(new Set(leads.map((l) => l.region).filter(Boolean))).map(
-              (r) => ({ label: r!, value: r! })
-            ),
+            ...Array.from(
+              new Set(leads.map((l) => l.region).filter(Boolean))
+            ).map((r) => ({ label: r!, value: r! })),
           ]}
           onChange={setRegionFilter}
         />
@@ -268,7 +270,7 @@ export default function LeadsPage() {
         />
       </div>
 
-      {/* Only own checkbox */}
+      {/* Only own */}
       <div className="flex items-center gap-3">
         <input
           type="checkbox"
@@ -347,16 +349,12 @@ export default function LeadsPage() {
         </div>
       )}
 
-      {/* Floating Button */}
       <Link
         href="/leads/new"
         className="fixed bottom-8 right-8 bg-[#B244FF] hover:bg-[#9A32E8] text-white px-5 py-4 rounded-full shadow-xl transition"
       >
         <span className="font-semibold">+</span> Lead anlegen
       </Link>
-
-      
-
     </div>
   );
 }

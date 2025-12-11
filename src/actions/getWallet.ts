@@ -2,12 +2,11 @@
 
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { supabaseOrbitAdmin } from "@/lib/supabase/admin";
 
 export async function getWallet() {
-  // await notwendig weil PROMISE
   const cookieStore = await cookies();
 
-  // wir bauen ein Cookie-Interface das Supabase akzeptiert
   const cookieAdapter = {
     get: (name: string) => cookieStore.get(name)?.value,
     set: (name: string, value: string, options: any) => {
@@ -23,25 +22,27 @@ export async function getWallet() {
     },
   };
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: cookieAdapter, // ← jetzt stimmt der Typ
-    }
+  // 1️⃣ ONE AUTH prüfen
+  const supabaseOne = createServerClient(
+    process.env.NEXT_PUBLIC_ONE_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_ONE_SUPABASE_ANON_KEY!,
+    { cookies: cookieAdapter }
   );
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabaseOne.auth.getUser();
 
   if (!user) return null;
 
-  const { data } = await supabase
+  // 2️⃣ Orbit: Credits auslesen
+  const { data, error } = await supabaseOrbitAdmin
     .from("orbit_credits")
     .select("credits")
     .eq("user_id", user.id)
     .single();
+
+  if (error) return null;
 
   return data;
 }

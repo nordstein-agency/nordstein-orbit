@@ -47,9 +47,9 @@ export default function AllianceOverviewPage() {
             className="md:col-span-2 h-[220px]"
           />
           <AnimatedAllianceCard
-            title="Matching Engine"
-            desc="KI-gestützte Vorschläge für ideale Projekt-Partner."
-            href="/alliance/matching"
+            title="Alliance Strategy Meetings"
+            desc="Planung deiner Alliance Meetings"
+            href="/alliance/meetings"
             className="h-[220px]"
           />
         </div>

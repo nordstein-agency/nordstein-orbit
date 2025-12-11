@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import OrbitButton from "@/components/orbit/OrbitButton";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/orbit/OrbitToast";
 import OrbitInput from "@/components/orbit/OrbitInput";
-import OrbitTextarea from "@/components/orbit/OrbitTextarea";
 
 // Neue Komponenten
 import SocialsEditor from "@/components/orbit/socials/SocialsEditor";
@@ -15,7 +13,6 @@ import SignalsEditor from "@/components/orbit/signals/SignalsEditor";
 export default function EditLeadPage() {
   const { id } = useParams();
   const router = useRouter();
-  const supabase = createSupabaseBrowserClient();
   const { addToast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -38,21 +35,20 @@ export default function EditLeadPage() {
     address: "",
   });
 
-  // Laden des Leads
+  // 🔹 Lead laden – jetzt über API, NICHT Supabase Browser
   useEffect(() => {
     async function load() {
-      const { data, error } = await supabase
-        .from("leads")
-        .select("*")
-        .eq("id", id)
-        .single();
+      const res = await fetch(`/api/orbit/get/lead/${id}`, {
+        cache: "no-store",
+      });
 
-      if (error) {
+      if (!res.ok) {
         addToast("Fehler beim Laden des Leads", "error");
         router.push("/leads");
         return;
       }
 
+      const data = await res.json();
       setLead(data);
 
       setForm({
@@ -70,17 +66,19 @@ export default function EditLeadPage() {
 
       setLoading(false);
     }
+
     load();
   }, [id]);
 
-  // Speichern
+  // 🔹 Speichern – ebenfalls per API
   async function handleSave() {
-    const { error } = await supabase
-      .from("leads")
-      .update(form)
-      .eq("id", id);
+    const res = await fetch(`/api/orbit/update/lead/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
 
-    if (error) {
+    if (!res.ok) {
       addToast("Fehler beim Speichern", "error");
       return;
     }
@@ -143,103 +141,76 @@ export default function EditLeadPage() {
       {/* TAB CONTENT */}
       <div className="space-y-6">
 
-        {/* DATEN */}
         {tab === "data" && (
           <>
             <OrbitInput
               label="Unternehmen"
               value={form.company_name}
-              onChange={(value) =>
-                setForm({ ...form, company_name: value })
-              }
+              onChange={(v) => setForm({ ...form, company_name: v })}
             />
 
             <OrbitInput
               label="Website"
               value={form.website}
-              onChange={(value) =>
-                setForm({ ...form, website: value })
-              }
+              onChange={(v) => setForm({ ...form, website: v })}
             />
 
             <OrbitInput
               label="Branche"
               value={form.industry}
-              onChange={(value) =>
-                setForm({ ...form, industry: value })
-              }
+              onChange={(v) => setForm({ ...form, industry: v })}
             />
 
             <OrbitInput
               label="Region"
               value={form.region}
-              onChange={(value) =>
-                setForm({ ...form, region: value })
-              }
+              onChange={(v) => setForm({ ...form, region: v })}
             />
 
             <OrbitInput
               label="Adresse"
               value={form.address}
-              onChange={(value) =>
-                setForm({ ...form, address: value })
-              }
+              onChange={(v) => setForm({ ...form, address: v })}
             />
           </>
         )}
 
-        {/* KONTAKT */}
         {tab === "contact" && (
           <>
             <OrbitInput
               label="E-Mail"
               value={form.email}
-              onChange={(value) =>
-                setForm({ ...form, email: value })
-              }
+              onChange={(v) => setForm({ ...form, email: v })}
             />
 
             <OrbitInput
               label="Telefon"
               value={form.phone}
-              onChange={(value) =>
-                setForm({ ...form, phone: value })
-              }
+              onChange={(v) => setForm({ ...form, phone: v })}
             />
           </>
         )}
 
-        {/* SOCIALS EDITOR */}
         {tab === "socials" && (
           <SocialsEditor
             value={form.socials}
-            onChange={(value: any   ) =>
-              setForm({ ...form, socials: value })
-            }
+            onChange={(v) => setForm({ ...form, socials: v })}
           />
         )}
 
-        {/* SIGNALS EDITOR */}
         {tab === "signals" && (
           <SignalsEditor
             value={form.signals}
-            onChange={(value: any) =>
-              setForm({ ...form, signals: value })
-            }
+            onChange={(v) => setForm({ ...form, signals: v })}
           />
         )}
 
-        {/* CEO */}
         {tab === "ceo" && (
-          <>
-            <OrbitInput
-              label="CEO / Founder"
-              value={form.ceo}
-              onChange={(value) =>
-                setForm({ ...form, ceo: value })
-              }
-            />
-          </>
+          <OrbitInput
+            label="CEO / Founder"
+            value={form.ceo}
+            onChange={(v) => setForm({ ...form, ceo: v })}
+          />
         )}
       </div>
     </div>

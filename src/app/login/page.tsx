@@ -4,8 +4,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-const supabase = createSupabaseBrowserClient();
+//import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { createSupabaseAuthClient } from "@/lib/supabase/authClient";
+//const supabase = createSupabaseBrowserClient();
+const authClient = createSupabaseAuthClient();
 
 
 export default function LoginPage() {
@@ -20,7 +22,7 @@ export default function LoginPage() {
     setMessage("");
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await authClient.auth.signInWithPassword({
       email,
       password,
     });

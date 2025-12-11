@@ -1,58 +1,60 @@
-
-
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(req: NextRequest) {
-  // Einheitlicher Response
+  const path = req.nextUrl.pathname;
+
+  // 🔓 Public routes (Login, Callback, Public APIs)
+  const publicPaths = [
+    "/login",
+    "/auth",
+    "/auth/callback",
+    "/api/public",
+    "/api/user/role"
+  ];
+
+  if (publicPaths.some((p) => path === p || path.startsWith(p))) {
+    return NextResponse.next();
+  }
+
+  // 🧱 Now build response safely
   const res = NextResponse.next({
-    request: {
-      headers: req.headers
-    }
+    request: { headers: req.headers },
   });
 
-  // Supabase Server Client korrekt initialisieren
+  // 🔐 ONE Auth Client
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_ONE_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_ONE_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return req.cookies.get(name)?.value;
+        get: (name) => req.cookies.get(name)?.value,
+        set: (name, value, opts) => {
+          res.cookies.set(name, value, {
+            ...opts,
+            domain: ".nordstein-agency.com",
+            path: "/",
+          });
         },
-        set(name: string, value: string, options: any) {
-          res.cookies.set(name, value, options);
-        },
-        remove(name: string, options: any) {
-          res.cookies.set(name, "", { ...options, maxAge: 0 });
+        remove: (name, opts) => {
+          res.cookies.set(name, "", {
+            ...opts,
+            maxAge: 0,
+            domain: ".nordstein-agency.com",
+            path: "/",
+          });
         },
       },
     }
   );
 
-  const path = req.nextUrl.pathname;
+  // 🔍 Check session
+  const { data: { session } } = await supabase.auth.getSession();
 
-  // öffentliche Routen
-  if (
-    path.startsWith("/login") ||
-    path.startsWith("/auth") ||
-    path.startsWith("/api/public")
-  ) {
-    return res;
-  }
-
-  // Session prüfen
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-    console.log("SESSION:", session); // <--- HIER
-
-  if (!session) {
-    const redirectUrl = req.nextUrl.clone();
-    redirectUrl.pathname = "/login";
-    return NextResponse.redirect(redirectUrl);
+  // ❌ No session → redirect (BUT NEVER redirect /login to itself!)
+  if (!session && !path.startsWith("/login")) {
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
   return res;
@@ -63,6 +65,9 @@ export const config = {
     "/((?!_next|static|.*\\..*|favicon.ico).*)",
   ],
 };
+
+
+
 
 
 /*

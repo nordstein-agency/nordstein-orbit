@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { supabaseOrbitAdmin } from "@/lib/supabase/admin";
 
 export async function getTransactions() {
   const cookieStore = await cookies();
@@ -21,26 +22,28 @@ export async function getTransactions() {
     },
   };
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: cookieAdapter,
-    }
+  // 1️⃣ Auth über ONE
+  const supabaseOne = createServerClient(
+    process.env.NEXT_PUBLIC_ONE_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_ONE_SUPABASE_ANON_KEY!,
+    { cookies: cookieAdapter }
   );
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabaseOne.auth.getUser();
 
   if (!user) return [];
 
-  const { data } = await supabase
+  // 2️⃣ Orbit: Transaktionen laden
+  const { data, error } = await supabaseOrbitAdmin
     .from("orbit_credit_transactions")
     .select("*")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50);
+
+  if (error) return [];
 
   return data ?? [];
 }

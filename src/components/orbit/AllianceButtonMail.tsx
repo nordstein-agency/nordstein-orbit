@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AllianceButton from "../alliance/AllianceButton";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 interface AllianceButtonMailProps {
   companyName: string | null;
@@ -20,11 +19,12 @@ export default function AllianceButtonMail({
 }: AllianceButtonMailProps) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createSupabaseBrowserClient();
 
   async function handleClick() {
     try {
       setLoading(true);
+
+      console.log("Lead ID:", leadId, "Company Name:", companyName, "Signals:", signals);
 
       // 1️⃣ Make Webhook triggern
       await fetch(
@@ -40,32 +40,31 @@ export default function AllianceButtonMail({
         }
       );
 
-      // 2️⃣ Polling (max 30 Sekunden)
+      // 2️⃣ Polling über API (nicht Browser Supabase!)
       let tries = 0;
       const MAX_TRIES = 30;
 
       while (tries < MAX_TRIES) {
         await new Promise((r) => setTimeout(r, 2000));
 
-        const { data, error } = await supabase
-          .from("lead_mail_templates")
-          .select("*")
-          .eq("lead_id", String(leadId))
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
+        const res = await fetch(`/api/orbit/get/lead-mail-template/${leadId}`, {
+          cache: "no-store",
+        });
 
-        if (!error && data) {
-          // Neue Vorlage vorhanden → Seite refreshen
-          router.refresh();
-          setLoading(false);
-          return;
+        if (res.ok) {
+          const data = await res.json();
+
+          if (data) {
+            router.refresh();
+            setLoading(false);
+            return;
+          }
         }
 
         tries++;
       }
 
-      // Falls timeout → einfach reload
+      // Timeout → Reload
       router.refresh();
     } finally {
       setLoading(false);
