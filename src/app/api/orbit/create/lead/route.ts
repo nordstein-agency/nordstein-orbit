@@ -24,10 +24,25 @@ export async function POST(req: NextRequest) {
     if (!session)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    // 2️⃣ ORBIT USER via auth_id finden
+        const { data: orbitUser, error: orbitUserError } =
+        await supabaseOrbitAdmin
+            .from("users")
+            .select("id")
+            .eq("auth_id", session.user.id)
+            .single();
+
+        if (orbitUserError || !orbitUser) {
+  return NextResponse.json(
+    { error: "Orbit user not found for auth_id" },
+    { status: 404 }
+  );
+}
+
     // Owner = der eingeloggte ONE User
     const payload = {
       ...body,
-      owner: session.user.id,
+      owner: orbitUser.id,
     };
 
     const { data, error } = await supabaseOrbitAdmin
