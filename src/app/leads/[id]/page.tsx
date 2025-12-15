@@ -58,6 +58,10 @@ export default function LeadDetailPage() {
   const [showNoCreditModal, setShowNoCreditModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
+  const [importing, setImporting] = useState(false);
+const [imported, setImported] = useState(false);
+
+
   // ---------------------
   // Wallet laden
   // ---------------------
@@ -145,6 +149,48 @@ export default function LeadDetailPage() {
 
     setShowConfirmModal(true);
   }
+
+  async function handleImportToOne() {
+  if (!lead) return;
+
+  setImporting(true);
+
+  try {
+    const res = await fetch("/api/one/outgoing/lead", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        orbit_lead_id: lead.id,
+
+        company_name: lead.company_name,
+        website: lead.website,
+        address: lead.address,
+        email: lead.email,
+        phone: lead.phone,
+        ceo: lead.ceo,
+        industry: lead.industry,
+
+        owner: lead.owner, // 👈 geht später auf customers.user_id
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(err);
+    }
+
+    setImported(true);
+  } catch (err) {
+    console.error(err);
+    alert("Fehler beim Übernehmen in ONE");
+  } finally {
+    setImporting(false);
+  }
+}
+
+
 
   // ---------------------
   // KI-Bewertung mit Credit-Abzug
@@ -337,6 +383,26 @@ export default function LeadDetailPage() {
               Bearbeiten
             </OrbitButton>
           </Link>
+
+          <OrbitButton
+            onClick={handleImportToOne}
+            disabled={importing || imported}
+            className={`
+              w-40
+              border border-green-400/40
+              bg-green-600/20
+              hover:bg-green-600/30
+              text-green-300
+              shadow-[0_0_20px_#22c55e33]
+            `}
+          >
+            {importing
+              ? "Übertrage…"
+              : imported
+              ? "In ONE übernommen ✓"
+              : "Übernehmen in ONE"}
+          </OrbitButton>
+
 
           <AllianceButtonMail
             leadId={lead.id}
