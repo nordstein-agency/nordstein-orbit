@@ -389,10 +389,9 @@ const [imported, setImported] = useState(false);
             disabled={importing || imported}
             className={`
               w-40
-              border border-green-400/40
-              bg-green-600/20
+              
               hover:bg-green-600/30
-              text-green-300
+              
               shadow-[0_0_20px_#22c55e33]
             `}
           >
