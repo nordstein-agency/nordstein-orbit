@@ -21,7 +21,7 @@ export async function GET() {
     // 1️⃣ Alle One-User laden
     const { data: oneUsers, error: oneErr } = await one
       .from("users")
-      .select("auth_id, first_name, last_name, email, role, leader");
+      .select("id, auth_id, first_name, last_name, email, role, leader");
 
     if (oneErr) {
       return NextResponse.json({ error: oneErr.message }, { status: 500 });
@@ -72,11 +72,12 @@ export async function GET() {
       const { data: insertedRow, error: insertErr } = await orbit
         .from("users")
         .insert({
-          auth_id: u.auth_id,
-          first_name: u.first_name,
-          last_name: u.last_name,
-          email: u.email,
-          role: u.role,
+            id: u.id,
+            auth_id: u.auth_id,
+            first_name: u.first_name,
+            last_name: u.last_name,
+            email: u.email,
+            role: u.role,
         })
         .select("id")
         .single();

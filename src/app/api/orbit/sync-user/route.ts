@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     // 1️⃣ ONE USER LADEN
     const { data: oneUser, error: oneError } = await one
       .from("users")
-      .select("first_name, last_name, email, role, leader")
+      .select("id, first_name, last_name, email, role, leader")
       .eq("auth_id", auth_id)
       .single();
 
@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
         .from("users")
         .insert({
           auth_id,
+          id: oneUser.id,
           first_name: oneUser.first_name,
           last_name: oneUser.last_name,
           email: oneUser.email,
@@ -94,6 +95,7 @@ export async function POST(req: NextRequest) {
     const { data: updateData, error: updateError } = await orbit
       .from("users")
       .update({
+        
         first_name: oneUser.first_name,
         last_name: oneUser.last_name,
         email: oneUser.email,
