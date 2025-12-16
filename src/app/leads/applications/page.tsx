@@ -73,19 +73,22 @@ export default function ApplicationsPage() {
         cache: "no-store",
       });
 
-      if (roleRes.ok) {
-        const roleData = await roleRes.json();
-        setCurrentUserRole(roleData?.role ?? null);
-      } else {
-        setCurrentUserRole(null);
-      }
+      let role: string | null = null;
 
-      // Schutz: diese Seite soll nur Geschäftsführung sehen
-      // (Falls jemand direkt URL eintippt)
-      if ((await roleRes.json().catch(() => null))?.role !== "Geschäftsführung") {
-        router.push("/leads");
-        return;
-      }
+if (roleRes.ok) {
+  const roleData = await roleRes.json();
+  role = roleData?.role ?? null;
+  setCurrentUserRole(role);
+} else {
+  setCurrentUserRole(null);
+}
+
+// Schutz: nur Geschäftsführung darf rein
+if (role !== "Geschäftsführung") {
+  router.push("/leads");
+  return;
+}
+
 
       // Applications aus Orbit-API
       const res = await fetch("/api/orbit/get/applications", {
