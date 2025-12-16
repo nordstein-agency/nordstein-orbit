@@ -3,26 +3,19 @@
 import { useEffect, useState, useMemo } from "react";
 import { createSupabaseAuthClient } from "@/lib/supabase/authClient";
 import OrbitButton from "@/components/orbit/OrbitButton";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { OrbitDropdown } from "@/components/orbit/OrbitDropdown";
 
 type Application = {
   id: string;
   created_at: string;
-  company_name: string | null;
-  website: string | null;
-  score: number | null;
-  status: string | null;
-  industry: string | null;
-  region: string | null;
-  signals: any | null;
-  owner: string | null;
-  address: string | null;
+  name: string;
+  birth_year: number | null;
+  location: string | null;
   email: string | null;
   phone: string | null;
-  socials: any | null;
-  ceo: string | null;
+  experience: string | null;
+  status: string | null;
 };
 
 export default function ApplicationsPage() {
@@ -31,73 +24,62 @@ export default function ApplicationsPage() {
   const pathname = usePathname();
 
   const [applications, setApplications] = useState<Application[]>([]);
-  const [onlyOwn, setOnlyOwn] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
-  const [industryFilter, setIndustryFilter] = useState("");
-  const [regionFilter, setRegionFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   // Sorting
-  const [sortField, setSortField] = useState("created_at");
+  const [sortField, setSortField] = useState<"created_at" | "name">("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   // Pagination
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
 
+  // --------------------------------
+  // Load user + role + applications
+  // --------------------------------
   useEffect(() => {
     async function load() {
       setLoading(true);
 
-      // Auth aus ONE
       const {
         data: { user },
       } = await authClient.auth.getUser();
 
       if (!user) {
-        console.error("No ONE user found");
-        setApplications([]);
-        setLoading(false);
+        router.push("/leads");
         return;
       }
 
-      setCurrentUserId(user.id);
-
-      // Rolle aus Orbit users Tabelle holen
+      // Rolle laden
       const roleRes = await fetch(`/api/orbit/get/my-role?auth_id=${user.id}`, {
-        method: "GET",
         cache: "no-store",
       });
 
       let role: string | null = null;
 
-if (roleRes.ok) {
-  const roleData = await roleRes.json();
-  role = roleData?.role ?? null;
-  setCurrentUserRole(role);
-} else {
-  setCurrentUserRole(null);
-}
+      if (roleRes.ok) {
+        const roleData = await roleRes.json();
+        role = roleData?.role ?? null;
+        setCurrentUserRole(role);
+      }
 
-// Schutz: nur Geschäftsführung darf rein
-if (role !== "Geschäftsführung") {
-  router.push("/leads");
-  return;
-}
+      // Guard
+      if (role !== "Geschäftsführung") {
+        router.push("/leads");
+        return;
+      }
 
-
-      // Applications aus Orbit-API
+      // Applications laden
       const res = await fetch("/api/orbit/get/applications", {
-        method: "GET",
         cache: "no-store",
       });
 
       if (!res.ok) {
-        console.error("Applications API Error:", res.status);
         setApplications([]);
         setLoading(false);
         return;
@@ -119,34 +101,37 @@ if (role !== "Geschäftsführung") {
       ? "applications"
       : "list";
 
+  // ---------------------------
+  // Helper: Alter berechnen
+  // ---------------------------
+  const calcAge = (birthYear: number | null) => {
+    if (!birthYear) return "—";
+    const currentYear = new Date().getFullYear();
+    return currentYear - birthYear;
+  };
+
+  // ---------------------------
+  // Filter + Sort
+  // ---------------------------
   const processedApplications = useMemo(() => {
     let out = [...applications];
 
-    if (onlyOwn && currentUserId) {
-      out = out.filter((l) => l.owner === currentUserId);
-    }
-
-    if (searchTerm.trim() !== "") {
+    if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
-      out = out.filter((l) =>
-        [l.company_name, l.website, l.email, l.ceo, l.industry, l.region]
+      out = out.filter((a) =>
+        [a.name, a.location, a.email, a.phone, a.experience]
           .filter(Boolean)
-          .some((field) => field!.toLowerCase().includes(term))
+          .some((v) => v!.toLowerCase().includes(term))
       );
     }
 
-    if (industryFilter) {
-      out = out.filter((l) => l.industry === industryFilter);
+    if (statusFilter) {
+      out = out.filter((a) => (a.status ?? "Neu") === statusFilter);
     }
 
-    if (regionFilter) {
-      out = out.filter((l) => l.region === regionFilter);
-    }
-
-    out.sort((a: any, b: any) => {
-      const A = a[sortField];
-      const B = b[sortField];
-
+    out.sort((a, b) => {
+      const A: any = a[sortField];
+      const B: any = b[sortField];
       if (A == null) return 1;
       if (B == null) return -1;
       if (A < B) return sortDir === "asc" ? -1 : 1;
@@ -155,16 +140,7 @@ if (role !== "Geschäftsführung") {
     });
 
     return out;
-  }, [
-    applications,
-    onlyOwn,
-    currentUserId,
-    searchTerm,
-    industryFilter,
-    regionFilter,
-    sortField,
-    sortDir,
-  ]);
+  }, [applications, searchTerm, statusFilter, sortField, sortDir]);
 
   const totalPages = Math.ceil(processedApplications.length / PAGE_SIZE);
   const paginatedApplications = processedApplications.slice(
@@ -174,8 +150,9 @@ if (role !== "Geschäftsführung") {
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, industryFilter, regionFilter, sortField, sortDir, onlyOwn]);
+  }, [searchTerm, statusFilter, sortField, sortDir]);
 
+  // ---------------------------
   return (
     <div className="px-6 pt-16 py-10 space-y-10 max-w-5xl mx-auto relative">
       {/* Tabs */}
@@ -218,48 +195,32 @@ if (role !== "Geschäftsführung") {
 
       {/* Overview */}
       <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="text-white text-lg font-semibold">Bewerbungen Übersicht</p>
-            <p className="text-white/50 text-sm">
-              {processedApplications.length} gefiltert · {applications.length} insgesamt
-            </p>
-          </div>
-        </div>
+        <p className="text-white text-lg font-semibold">Bewerbungen</p>
+        <p className="text-white/50 text-sm">
+          {processedApplications.length} gefiltert · {applications.length} insgesamt
+        </p>
       </div>
 
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <input
           type="text"
-          placeholder="Suchen (Firma, Website, Branche, Region...)"
+          placeholder="Suchen (Name, Ort, Kontakt, Erfahrung...)"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full px-4 py-2 rounded-xl bg-black/40 border border-white/10 text-white placeholder-white/40"
         />
 
         <OrbitDropdown
-          value={industryFilter}
-          placeholder="Branche"
+          value={statusFilter}
+          placeholder="Status"
           options={[
-            { label: "Alle Branchen", value: "" },
+            { label: "Alle", value: "" },
             ...Array.from(
-              new Set(applications.map((l) => l.industry).filter(Boolean))
-            ).map((i) => ({ label: i!, value: i! })),
+              new Set(applications.map((a) => a.status ?? "Neu"))
+            ).map((s) => ({ label: s, value: s })),
           ]}
-          onChange={setIndustryFilter}
-        />
-
-        <OrbitDropdown
-          value={regionFilter}
-          placeholder="Region"
-          options={[
-            { label: "Alle Regionen", value: "" },
-            ...Array.from(
-              new Set(applications.map((l) => l.region).filter(Boolean))
-            ).map((r) => ({ label: r!, value: r! })),
-          ]}
-          onChange={setRegionFilter}
+          onChange={setStatusFilter}
         />
       </div>
 
@@ -270,12 +231,9 @@ if (role !== "Geschäftsführung") {
           placeholder="Sortieren nach…"
           options={[
             { label: "Datum", value: "created_at" },
-            { label: "Firma", value: "company_name" },
-            { label: "Score", value: "score" },
-            { label: "Branche", value: "industry" },
-            { label: "Region", value: "region" },
+            { label: "Name", value: "name" },
           ]}
-          onChange={setSortField}
+          onChange={(v) => setSortField(v as any)}
         />
 
         <OrbitDropdown
@@ -285,22 +243,8 @@ if (role !== "Geschäftsführung") {
             { label: "Aufsteigend", value: "asc" },
             { label: "Absteigend", value: "desc" },
           ]}
-          onChange={(v) => setSortDir(v as "asc" | "desc")}
+          onChange={(v) => setSortDir(v as any)}
         />
-      </div>
-
-      {/* Only own */}
-      <div className="flex items-center gap-3">
-        <input
-          type="checkbox"
-          id="onlyOwn"
-          checked={onlyOwn}
-          onChange={(e) => setOnlyOwn(e.target.checked)}
-          className="w-4 h-4 accent-[#b244ff]"
-        />
-        <label htmlFor="onlyOwn" className="text-sm text-gray-300">
-          Nur eigene anzeigen
-        </label>
       </div>
 
       {/* Table */}
@@ -315,24 +259,29 @@ if (role !== "Geschäftsführung") {
           <table className="w-full text-sm">
             <thead className="bg-white/5 text-gray-300">
               <tr>
-                <th className="px-4 py-3 text-left">Unternehmen</th>
-                <th className="px-4 py-3 text-left">Branche</th>
-                <th className="px-4 py-3 text-left">Region</th>
-                <th className="px-4 py-3 text-left">Score</th>
+                <th className="px-4 py-3 text-left">Name</th>
+                <th className="px-4 py-3 text-left">Alter</th>
+                <th className="px-4 py-3 text-left">Ort</th>
+                <th className="px-4 py-3 text-left">Status</th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-white/10">
-              {paginatedApplications.map((lead) => (
+              {paginatedApplications.map((a) => (
                 <tr
-                  key={lead.id}
-                  onClick={() => router.push(`/leads/${lead.id}`)}
-                  className="hover:bg-white/10 transition cursor-pointer"
+                  key={a.id}
+                  className="hover:bg-white/10 transition"
                 >
-                  <td className="px-4 py-3 text-white">{lead.company_name || "—"}</td>
-                  <td className="px-4 py-3 text-gray-300">{lead.industry || "—"}</td>
-                  <td className="px-4 py-3 text-gray-300">{lead.region || "—"}</td>
-                  <td className="px-4 py-3 text-gray-200 font-semibold">{lead.score ?? "—"}</td>
+                  <td className="px-4 py-3 text-white">{a.name}</td>
+                  <td className="px-4 py-3 text-gray-300">
+                    {calcAge(a.birth_year)}
+                  </td>
+                  <td className="px-4 py-3 text-gray-300">
+                    {a.location || "—"}
+                  </td>
+                  <td className="px-4 py-3 text-gray-200 font-semibold">
+                    {a.status ?? "Neu"}
+                  </td>
                 </tr>
               ))}
             </tbody>
