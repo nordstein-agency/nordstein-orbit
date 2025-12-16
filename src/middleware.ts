@@ -74,7 +74,7 @@ export const config = {
 
 
 
-
+/*
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -141,3 +141,74 @@ export const config = {
 };
 
 
+*/
+
+//META TEST
+
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+
+export async function middleware(req: NextRequest) {
+  const path = req.nextUrl.pathname;
+
+  // 🔓 Meta Webhook IMMER erlauben
+  if (path === "/api/webhooks/meta") {
+    return NextResponse.next();
+  }
+
+  // Public routes in Orbit
+  const publicPaths = ["/api/public", "/_next", "/favicon.ico"];
+  if (publicPaths.some((p) => path.startsWith(p))) {
+    return NextResponse.next();
+  }
+
+  const res = NextResponse.next({ request: { headers: req.headers } });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_ONE_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_ONE_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (name) => req.cookies.get(name)?.value,
+        set: (name, value, opts) => {
+          res.cookies.set(name, value, {
+            ...opts,
+            domain: ".nordstein-agency.com",
+            path: "/",
+            sameSite: "lax",
+            secure: true,
+          });
+        },
+        remove: (name, opts) => {
+          res.cookies.set(name, "", {
+            ...opts,
+            maxAge: 0,
+            domain: ".nordstein-agency.com",
+            path: "/",
+            sameSite: "lax",
+            secure: true,
+          });
+        },
+      },
+    }
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    const returnTo = encodeURIComponent(req.nextUrl.href);
+    const startLogin =
+      process.env.NODE_ENV === "development"
+        ? `http://localhost:3000/login?returnTo=${returnTo}`
+        : `https://start.nordstein-agency.com/login?returnTo=${returnTo}`;
+
+    return NextResponse.redirect(startLogin);
+  }
+
+  return res;
+}
+
+export const config = {
+  matcher: ["/((?!_next|static|.*\\..*|favicon.ico).*)"],
+};
