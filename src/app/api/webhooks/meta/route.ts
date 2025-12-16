@@ -1,5 +1,21 @@
-// app/api/webhooks/meta/route.ts
 import { NextRequest, NextResponse } from "next/server";
+
+// -----------------------------------------------
+// Funktion zum Abrufen der Lead-Daten
+// -----------------------------------------------
+async function fetchMetaLead(leadgenId: string) {
+  const res = await fetch(
+    `https://graph.facebook.com/v19.0/${leadgenId}?access_token=${process.env.META_PAGE_ACCESS_TOKEN}`,
+    { cache: "no-store" }
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error("Meta Lead Fetch failed: " + err);
+  }
+
+  return res.json();
+}
 
 // ------------------------------------------------------
 // GET → Webhook Verification (bleibt gleich)
@@ -62,6 +78,13 @@ export async function POST(req: NextRequest) {
             formId,
             createdTime,
           });
+
+          // Holen der echten Lead-Daten
+          if (leadgenId) {
+            const lead = await fetchMetaLead(leadgenId);
+            console.log("📇 FULL META LEAD");
+            console.log(JSON.stringify(lead, null, 2)); // Zeigt den kompletten Lead
+          }
         }
       }
     }
