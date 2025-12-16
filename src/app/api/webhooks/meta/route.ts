@@ -48,6 +48,8 @@ export async function GET(req: NextRequest) {
 // POST → Webhook Events (DEBUG / TEST)
 // ------------------------------------------------------
 export async function POST(req: NextRequest) {
+    console.log("🔥 META HIT ROUTE");
+
   try {
     const payload = await req.json();
 
