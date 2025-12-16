@@ -1,7 +1,7 @@
 // app/api/webhooks/meta/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || "orbit_meta_verify_2025";
+const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN 
 
 // ------------------------------------------------------
 // GET → Webhook Verifikation (Meta Pflicht)
@@ -13,19 +13,21 @@ export async function GET(req: NextRequest) {
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
 
-  if (mode === "subscribe" && token === VERIFY_TOKEN && challenge) {
-    // ✅ Meta erwartet EXAKT diesen Response
-    return new NextResponse(challenge, {
-      status: 200,
-      headers: { "Content-Type": "text/plain" },
-    });
-  }
+  console.log("META VERIFY DEBUG", {
+    mode,
+    token,
+    challenge,
+    expected: process.env.META_VERIFY_TOKEN,
+  });
 
-  return NextResponse.json(
-    { error: "Webhook verification failed" },
-    { status: 403 }
-  );
+  return NextResponse.json({
+    mode,
+    token,
+    challenge,
+    expected: process.env.META_VERIFY_TOKEN,
+  });
 }
+
 
 // ------------------------------------------------------
 // POST → Webhook Events (Leadgen etc.)
