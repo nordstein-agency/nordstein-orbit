@@ -269,9 +269,11 @@ export default function ApplicationsPage() {
             <tbody className="divide-y divide-white/10">
               {paginatedApplications.map((a) => (
                 <tr
-                  key={a.id}
-                  className="hover:bg-white/10 transition"
-                >
+  key={a.id}
+  onClick={() => router.push(`/leads/applications/${a.id}`)}
+  className="hover:bg-white/10 transition cursor-pointer"
+>
+
                   <td className="px-4 py-3 text-white">{a.name}</td>
                   <td className="px-4 py-3 text-gray-300">
                     {calcAge(a.birth_year)}
