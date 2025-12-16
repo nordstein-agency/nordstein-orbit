@@ -1,6 +1,9 @@
 // app/api/webhooks/meta/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
+// ------------------------------------------------------
+// GET → Webhook Verification (bleibt gleich)
+// ------------------------------------------------------
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
 
@@ -25,16 +28,53 @@ export async function GET(req: NextRequest) {
   );
 }
 
+// ------------------------------------------------------
+// POST → Webhook Events (DEBUG / TEST)
+// ------------------------------------------------------
 export async function POST(req: NextRequest) {
   try {
     const payload = await req.json();
 
-    console.log("📩 META WEBHOOK EVENT", payload);
+    console.log("======================================");
+    console.log("📩 META WEBHOOK EVENT RECEIVED");
+    console.log("======================================");
+    console.log(JSON.stringify(payload, null, 2));
 
-    // Meta erwartet schnell 200 OK
-    return NextResponse.json({ success: true });
+    // ----------------------------------
+    // Optional: gezielt Leadgen-Daten lesen
+    // ----------------------------------
+    const entries = payload?.entry ?? [];
+
+    for (const entry of entries) {
+      const pageId = entry.id;
+      const changes = entry.changes ?? [];
+
+      for (const change of changes) {
+        if (change.field === "leadgen") {
+          const leadgenId = change.value?.leadgen_id;
+          const formId = change.value?.form_id;
+          const createdTime = change.value?.created_time;
+
+          console.log("🧲 LEADGEN EVENT");
+          console.log({
+            pageId,
+            leadgenId,
+            formId,
+            createdTime,
+          });
+        }
+      }
+    }
+
+    // ⚠️ Meta erwartet IMMER schnell 200 OK
+    return NextResponse.json({ received: true });
   } catch (err) {
-    console.error("❌ Meta Webhook Error", err);
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    console.error("❌ META WEBHOOK ERROR");
+    console.error(err);
+
+    return NextResponse.json(
+      { error: "Invalid payload" },
+      { status: 400 }
+    );
   }
 }
