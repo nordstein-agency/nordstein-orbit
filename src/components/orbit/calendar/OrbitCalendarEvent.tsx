@@ -1,5 +1,5 @@
-// src/components/orbit/calendar/OrbitCalendarEvent.tsx
 import { format } from "date-fns";
+import { formatOrbit, resolveDisplayTZ } from "@/lib/orbit/timezone";
 
 export interface OrbitEventData {
   id: string;
@@ -8,22 +8,26 @@ export interface OrbitEventData {
   title: string;
   type?: string;
   location?: string | null;
+  notes?: string | null;
 }
 
 interface OrbitCalendarEventProps {
   event: OrbitEventData;
   top: number;
   height: number;
+  onSelect?: (event: OrbitEventData) => void;
 }
 
 export default function OrbitCalendarEvent({
   event,
   top,
   height,
+  onSelect,
 }: OrbitCalendarEventProps) {
   const start = new Date(event.starts_at);
   const end = new Date(event.ends_at);
 
+  const tz = resolveDisplayTZ(null);
   return (
     <div
       className="
@@ -37,6 +41,12 @@ export default function OrbitCalendarEvent({
         hover:-translate-y-0.5
       "
       style={{ top, height }}
+      onClick={() => onSelect?.(event)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onSelect?.(event);
+      }}
     >
       <div className="flex items-center justify-between gap-2 mb-0.5">
         <span className="font-semibold truncate">{event.title}</span>
@@ -48,8 +58,10 @@ export default function OrbitCalendarEvent({
       </div>
       <div className="text-[10px] opacity-80 flex items-center justify-between gap-2">
         <span>
-          {format(start, "HH:mm")} – {format(end, "HH:mm")}
-        </span>
+  {formatOrbit(start, tz, "HH:mm")} –{" "}
+  {formatOrbit(end, tz, "HH:mm")}
+</span>
+
         {event.location && (
           <span className="truncate max-w-[80px] text-right">
             {event.location}

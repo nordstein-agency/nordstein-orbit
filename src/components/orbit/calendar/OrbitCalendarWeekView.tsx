@@ -1,5 +1,4 @@
 // src/components/orbit/calendar/OrbitCalendarWeekView.tsx
-
 import { format } from "date-fns";
 import { de } from "date-fns/locale/de";
 import OrbitCalendarTimeColumn from "./OrbitCalendarTimeColumn";
@@ -10,21 +9,26 @@ interface OrbitCalendarWeekViewProps {
   weekDays: Date[];
   hours: number[];
   eventsByDay: Record<string, OrbitEventData[]>;
+  onSelectEvent?: (event: OrbitEventData) => void;
+  displayTZ: string;
+  onCreateEvent?: (defaults: { date: string; start: string }) => void;
+
 }
 
 export default function OrbitCalendarWeekView({
   weekDays,
   hours,
   eventsByDay,
+  displayTZ,
+  onSelectEvent,
+  onCreateEvent,
 }: OrbitCalendarWeekViewProps) {
   const today = new Date();
 
   return (
     <div className="flex flex-col h-[75vh]">
-
-      {/* HEADER (Fix: Höhe = 72px wie Body Rows) */}
+      {/* HEADER */}
       <div className="flex border-b border-white/10 bg-gradient-to-r from-[#1a0f17] via-black to-[#120912] h-[72px]">
-
         {/* Zeit-Spalte */}
         <div
           className="
@@ -72,11 +76,8 @@ export default function OrbitCalendarWeekView({
 
       {/* BODY */}
       <div className="flex flex-1 overflow-y-auto bg-black/30">
-
-        {/* Zeit-Spalte */}
         <OrbitCalendarTimeColumn hours={hours} />
 
-        {/* 7 Tages-Spalten */}
         <div className="flex flex-1">
           {weekDays.map((day) => (
             <OrbitCalendarDayColumn
@@ -85,6 +86,9 @@ export default function OrbitCalendarWeekView({
               events={eventsByDay[format(day, "yyyy-MM-dd")] || []}
               hourStart={7}
               rowHeight={72}
+              displayTZ={displayTZ}
+              onSelectEvent={onSelectEvent}
+              onCreateEvent={onCreateEvent}
             />
           ))}
         </div>
