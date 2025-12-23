@@ -45,11 +45,9 @@ export default function OrbitCalendarHeader({
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-wide">
-            Analysen. Beratungen. Recruiting.
+            Kalender
           </h1>
-          <p className="text-gray-300 mt-2 text-sm md:text-base">
-            Plane deine Woche wie im Apple Kalender – aber direkt im Orbit Cockpit.
-          </p>
+        
           <p className="text-xs text-gray-400 mt-1">
             Woche{" "}
             <span className="font-medium text-[#d8a5d0]">

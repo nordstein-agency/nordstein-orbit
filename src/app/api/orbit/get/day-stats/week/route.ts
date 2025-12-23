@@ -1,7 +1,7 @@
-// src/app/api/orbit/get/calendar/week/route.ts
+// src/app/api/orbit/get/day-stats/week/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseOrbitAdmin } from "@/lib/supabase/admin";
-import { startOfWeek, addDays } from "date-fns";
+import { startOfWeek, addDays, format } from "date-fns";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
@@ -10,12 +10,10 @@ export async function GET(req: NextRequest) {
 
   const requestedUserId =
   req.nextUrl.searchParams.get("user_id");
-const onlyOwn =
-  req.nextUrl.searchParams.get("only_own") === "1";
 
 
   // --------------------------------------------------
-  // 1️⃣ Auth-User aus Cookies holen (ONE Auth)
+  // 1️⃣ Auth (ONE)
   // --------------------------------------------------
   const cookieStore = cookies();
 
@@ -35,14 +33,11 @@ const onlyOwn =
   } = await supabaseAuth.auth.getUser();
 
   if (authError || !user) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // --------------------------------------------------
-  // 2️⃣ Eigene users.id aus Orbit-DB holen
+  // 2️⃣ Eigene users.id holen
   // --------------------------------------------------
   const { data: me, error: meError } = await supabaseOrbitAdmin
     .from("users")
@@ -51,34 +46,24 @@ const onlyOwn =
     .single();
 
   if (meError || !me) {
-    return NextResponse.json(
-      { error: "Orbit user not found" },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
   // --------------------------------------------------
-  // 3️⃣ Alle Users laden (id + leader)
+  // 3️⃣ Downline DIREKT berechnen (KEIN fetch!)
   // --------------------------------------------------
-  const { data: allUsers, error: usersError } =
-    await supabaseOrbitAdmin
-      .from("users")
-      .select("id, leader");
+  const { data: allUsers, error: usersError } = await supabaseOrbitAdmin
+    .from("users")
+    .select("id, leader");
 
   if (usersError || !allUsers) {
-    return NextResponse.json(
-      { error: "Failed to load users" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Users load failed" }, { status: 500 });
   }
 
-  // --------------------------------------------------
-  // 4️⃣ Downline rekursiv sammeln (inkl. mir selbst)
-  // --------------------------------------------------
   const userIdSet = new Set<string>();
-    
+  
   const rootUserId = requestedUserId || me.id;
-  const stack: string[] = [rootUserId];
+const stack = [rootUserId];
 
 
   while (stack.length > 0) {
@@ -87,25 +72,19 @@ const onlyOwn =
 
     userIdSet.add(current);
 
-    const children = allUsers.filter(
-      (u) => u.leader === current
-    );
-
-    for (const child of children) {
-      stack.push(child.id);
-    }
+    allUsers
+      .filter((u) => u.leader === current)
+      .forEach((u) => stack.push(u.id));
   }
 
-    const user_ids = onlyOwn
-    ? [rootUserId]
-    : Array.from(userIdSet);
+  const userIds = Array.from(userIdSet);
 
-  if (user_ids.length === 0) {
-    return NextResponse.json({ events: [] });
+  if (userIds.length === 0) {
+    return NextResponse.json({ statsByDay: {} });
   }
 
   // --------------------------------------------------
-  // 5️⃣ Woche berechnen
+  // 4️⃣ Woche berechnen
   // --------------------------------------------------
   const base = new Date();
   const weekStart = startOfWeek(addDays(base, offset * 7), {
@@ -113,22 +92,32 @@ const onlyOwn =
   });
   const weekEnd = addDays(weekStart, 7);
 
+  const startDate = format(weekStart, "yyyy-MM-dd");
+  const endDate = format(weekEnd, "yyyy-MM-dd");
+
   // --------------------------------------------------
-  // 6️⃣ Events nur für eigene + Downline-User laden
+  // 5️⃣ Day-Stats laden
   // --------------------------------------------------
   const { data, error } = await supabaseOrbitAdmin
-    .from("orbit_calendar_events")
+    .from("orbit_day_stats")
     .select("*")
-    .in("user_id", user_ids)
-    .gte("starts_at", weekStart.toISOString())
-    .lt("starts_at", weekEnd.toISOString());
+    .in("user_id", userIds)
+    .gte("date", startDate)
+    .lt("date", endDate);
 
   if (error) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ events: data });
+  // --------------------------------------------------
+  // 6️⃣ Nach Datum gruppieren
+  // --------------------------------------------------
+  const map: Record<string, any[]> = {};
+
+  for (const row of data ?? []) {
+    if (!map[row.date]) map[row.date] = [];
+    map[row.date].push(row);
+  }
+
+  return NextResponse.json({ statsByDay: map });
 }

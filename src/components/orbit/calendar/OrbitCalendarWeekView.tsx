@@ -12,6 +12,8 @@ interface OrbitCalendarWeekViewProps {
   onSelectEvent?: (event: OrbitEventData) => void;
   displayTZ: string;
   onCreateEvent?: (defaults: { date: string; start: string }) => void;
+  onEventMoved?: () => void;
+
 
 }
 
@@ -22,6 +24,7 @@ export default function OrbitCalendarWeekView({
   displayTZ,
   onSelectEvent,
   onCreateEvent,
+  onEventMoved,
 }: OrbitCalendarWeekViewProps) {
   const today = new Date();
 
@@ -89,6 +92,7 @@ export default function OrbitCalendarWeekView({
               displayTZ={displayTZ}
               onSelectEvent={onSelectEvent}
               onCreateEvent={onCreateEvent}
+              onEventMoved={onEventMoved}
             />
           ))}
         </div>

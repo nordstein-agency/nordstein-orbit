@@ -1,3 +1,4 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { differenceInMinutes, format } from "date-fns";
 import { formatOrbit } from "@/lib/orbit/timezone";
 import OrbitCalendarEvent, { OrbitEventData } from "./OrbitCalendarEvent";
@@ -10,45 +11,12 @@ interface OrbitCalendarDayColumnProps {
   displayTZ: string;
   onSelectEvent?: (event: OrbitEventData) => void;
   onCreateEvent?: (defaults: { date: string; start: string }) => void;
-
+  onEventMoved?: () => void;
 }
 
-
-function calculateHeatmap(
-  events: OrbitEventData[],
-  hourStart: number,
-  slots = 16 // 7–22 Uhr = 16 Slots
-) {
-  const heat: number[] = Array(slots).fill(0);
-
-  events.forEach((e) => {
-    const start = new Date(e.starts_at);
-    const end = new Date(e.ends_at);
-
-    for (let i = 0; i < slots; i++) {
-      const slotHour = hourStart + i;
-      const slotStart = new Date(start);
-      slotStart.setHours(slotHour, 0, 0, 0);
-
-      const slotEnd = new Date(slotStart);
-      slotEnd.setHours(slotHour + 1, 0, 0, 0);
-
-      if (start < slotEnd && end > slotStart) {
-        heat[i]++;
-      }
-    }
-  });
-
-  return heat;
-}
-
-/**
- * Gruppiert überlappende Events
- */
 function groupOverlappingEvents(events: OrbitEventData[]) {
   const sorted = [...events].sort(
-    (a, b) =>
-      new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
+    (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
   );
 
   const groups: OrbitEventData[][] = [];
@@ -89,19 +57,96 @@ export default function OrbitCalendarDayColumn({
   displayTZ,
   onSelectEvent,
   onCreateEvent,
+  onEventMoved,
 }: OrbitCalendarDayColumnProps) {
-
-
-
   const isToday =
     format(day, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
 
-    const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // relative Y-Position innerhalb der Column
+  const columnRef = useRef<HTMLDivElement | null>(null);
+  const [columnWidth, setColumnWidth] = useState(0);
+
+  // ✅ Spaltenbreite live messen (für X-Snap)
+  useEffect(() => {
+    if (!columnRef.current) return;
+
+    const el = columnRef.current;
+    const ro = new ResizeObserver(() => {
+      const rect = el.getBoundingClientRect();
+      setColumnWidth(rect.width || 0);
+    });
+
+    ro.observe(el);
+
+    // initial
+    const rect = el.getBoundingClientRect();
+    setColumnWidth(rect.width || 0);
+
+    return () => ro.disconnect();
+  }, []);
+
+  const [dragPreviewOffsets, setDragPreviewOffsets] = useState<
+    Record<string, number>
+  >({});
+
+  const [dragPreviewOffsetsX, setDragPreviewOffsetsX] = useState<
+    Record<string, number>
+  >({});
+
+  const [dragBaseTops, setDragBaseTops] = useState<Record<string, number>>({});
+
+  async function handleEventDrop(event: OrbitEventData, deltaMinutes: number) {
+    if (!deltaMinutes) return;
+
+    const { addMinutesISO } = await import("@/lib/orbit/time/addMinutes");
+
+    const starts_at = addMinutesISO(event.starts_at, deltaMinutes);
+    const ends_at = addMinutesISO(event.ends_at, deltaMinutes);
+
+    const res = await fetch("/api/orbit/update/calendar/event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: event.id,
+        starts_at,
+        ends_at,
+      }),
+    });
+
+    if (!res.ok) {
+      console.error("Failed to update event");
+      return;
+    }
+
+    onEventMoved?.();
+
+    // ✅ Reset nach Drop (Y + X + BaseTop)
+    setDragPreviewOffsets((p) => ({ ...p, [event.id]: 0 }));
+    setDragPreviewOffsetsX((p) => ({ ...p, [event.id]: 0 }));
+    setDragBaseTops((p) => {
+      const copy = { ...p };
+      delete copy[event.id];
+      return copy;
+    });
+  }
+
+  function handlePreviewOffsetChange(eventId: string, offsetY: number) {
+    setDragPreviewOffsets((prev) => ({
+      ...prev,
+      [eventId]: offsetY,
+    }));
+  }
+
+  function handlePreviewOffsetXChange(eventId: string, offsetX: number) {
+    setDragPreviewOffsetsX((prev) => ({
+      ...prev,
+      [eventId]: offsetX,
+    }));
+  }
+
+  const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
 
-    // Slot berechnen
     const minutesFromTop = Math.max(0, Math.round((y / rowHeight) * 60));
     const totalMinutes = hourStart * 60 + minutesFromTop;
 
@@ -110,19 +155,15 @@ export default function OrbitCalendarDayColumn({
 
     const pad2 = (n: number) => String(n).padStart(2, "0");
 
-    const dateStr = format(day, "yyyy-MM-dd");
-    const timeStr = `${pad2(h)}:${pad2(m)}`;
-
-    onCreateEvent?.({ date: dateStr, start: timeStr });
+    onCreateEvent?.({
+      date: format(day, "yyyy-MM-dd"),
+      start: `${pad2(h)}:${pad2(m)}`,
+    });
   };
-
-
-  const heatmap = calculateHeatmap(events, hourStart);
-  const maxHeat = Math.max(...heatmap, 1);
-
 
   return (
     <div
+      ref={columnRef}
       className={`
         flex-1 
         border-l border-white/10 
@@ -131,69 +172,74 @@ export default function OrbitCalendarDayColumn({
       `}
       onDoubleClick={handleDoubleClick}
     >
-      {/* Stundenraster */}
       {[...Array(16)].map((_, i) => (
-        <div
-          key={i}
-          className="h-[72px] border-t border-white/[0.07] relative"
-        >
+        <div key={i} className="h-[72px] border-t border-white/[0.07] relative">
           <div className="absolute left-0 right-0 top-1/2 h-px bg-white/[0.04]" />
         </div>
       ))}
 
-      {/* EVENTS */}
       {groupOverlappingEvents(events).map((group) => {
-        // gemeinsame Zeitbasis (frühester Start, spätestes Ende)
         const startTimes = group.map((e) => new Date(e.starts_at));
         const endTimes = group.map((e) => new Date(e.ends_at));
 
-        const start = new Date(
-          Math.min(...startTimes.map((d) => d.getTime()))
-        );
-        const end = new Date(
-          Math.max(...endTimes.map((d) => d.getTime()))
-        );
+        const start = new Date(Math.min(...startTimes.map((d) => d.getTime())));
+        const end = new Date(Math.max(...endTimes.map((d) => d.getTime())));
 
-        // Position
         const startHour =
           Number(formatOrbit(start, displayTZ, "H")) +
           Number(formatOrbit(start, displayTZ, "m")) / 60;
 
         const topPx = (startHour - hourStart) * rowHeight;
+        const heightPx = Math.max(
+          50,
+          (Math.max(15, differenceInMinutes(end, start)) / 60) * rowHeight
+        );
 
-        const durationMin = Math.max(15, differenceInMinutes(end, start));
-        const heightPx = Math.max(50, (durationMin / 60) * rowHeight);
-
-        // 🟢 FALL 1: GENAU EIN TERMIN → wie bisher
         if (group.length === 1) {
           const event = group[0];
+
+          const previewOffsetY = dragPreviewOffsets[event.id] ?? 0;
+          const previewOffsetX = dragPreviewOffsetsX[event.id] ?? 0;
+
+          const baseTop =
+            dragBaseTops[event.id] ??
+            (() => {
+              if (previewOffsetY !== 0) {
+                setDragBaseTops((p) => ({ ...p, [event.id]: topPx }));
+              }
+              return topPx;
+            })();
 
           return (
             <OrbitCalendarEvent
               key={event.id}
               event={event}
-              top={topPx}
+              top={baseTop}
               height={heightPx}
               onSelect={onSelectEvent}
+              draggable
+              rowHeight={rowHeight}
+              snapMinutes={15}
+              columnWidth={columnWidth} // ✅ wichtig für X-Snap / dayShift
+
+              previewOffsetY={previewOffsetY}
+              onPreviewOffsetChange={handlePreviewOffsetChange}
+
+              previewOffsetX={previewOffsetX}
+              onPreviewOffsetXChange={handlePreviewOffsetXChange}
+
+              onDrop={handleEventDrop}
             />
           );
         }
 
-        // 🔵 FALL 2: MEHRERE TERMINE → AGGREGIERTER BLOCK
         return (
           <div
             key={`group-${group[0].id}`}
-            style={{
-              top: topPx,
-              height: heightPx,
-            }}
-            onClick={() => {
-              onSelectEvent?.({
-                ...group[0],
-                __group: group, // Marker
-              } as any);
-            }}
-
+            style={{ top: topPx, height: heightPx }}
+            onClick={() =>
+              onSelectEvent?.({ ...group[0], __group: group } as any)
+            }
             className="
               absolute left-1 right-1
               rounded-lg
@@ -209,9 +255,7 @@ export default function OrbitCalendarDayColumn({
             <div className="font-semibold text-[#d8a5d0]">
               {group.length} Termine
             </div>
-            <div className="text-[10px] text-gray-300">
-              Klick für Details
-            </div>
+            <div className="text-[10px] text-gray-300">Klick für Details</div>
           </div>
         );
       })}

@@ -1,51 +1,54 @@
-// src/app/calendar/CalendarPageClient.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import OrbitCalendarHeader from "@/components/orbit/calendar/OrbitCalendarHeader";
 import OrbitCalendarWeekView from "@/components/orbit/calendar/OrbitCalendarWeekView";
 import OrbitEventModal from "@/components/orbit/calendar/OrbitEventModal";
-import { startOfWeek, addDays, format } from "date-fns";
+import { startOfWeek, addDays, set } from "date-fns";
 import type { OrbitEventData } from "@/components/orbit/calendar/OrbitCalendarEvent";
 import { resolveDisplayTZ } from "@/lib/orbit/timezone";
 import { formatOrbit } from "@/lib/orbit/timezone";
 import OrbitEventGroupModal from "@/components/orbit/calendar/OrbitEventGroupModal";
+import OrbitCalendarDayStatsRow from "@/components/orbit/calendar/OrbitCalendarDayStatsRow";
+import { OrbitDropdown } from "@/components/orbit/OrbitDropdown";
+import { se } from "date-fns/locale";
 
-
-
-interface CalendarPageClientProps {
-  // diese Props brauchst du NICHT mehr zwingend,
-  // weil wir alles im Client per weekOffset berechnen.
-  // Aber wenn page.tsx sie noch schickt: ignorieren ok.
-}
-
+interface CalendarPageClientProps {}
 
 export default function CalendarPageClient({}: CalendarPageClientProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
 
-  const [groupModalOpen, setGroupModalOpen] = useState(false);
-const [groupEvents, setGroupEvents] = useState<OrbitEventData[]>([]);
+  const [loading, setLoading] = useState(true);
 
+
+  const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const [groupEvents, setGroupEvents] = useState<OrbitEventData[]>([]);
 
   const [eventsByDay, setEventsByDay] = useState<Record<string, OrbitEventData[]>>(
     {}
   );
 
-  const [selectedEvent, setSelectedEvent] = useState<OrbitEventData | null>(null);
-  const [createDefaults, setCreateDefaults] = useState<{ date: string; start: string } | null>(null);
+  const [dayStatsByDay, setDayStatsByDay] = useState<Record<string, any[]>>({});
 
+  const [selectedEvent, setSelectedEvent] = useState<OrbitEventData | null>(null);
+  const [createDefaults, setCreateDefaults] =
+    useState<{ date: string; start: string } | null>(null);
 
   const [displayTimezoneSetting, setDisplayTimezoneSetting] =
-  useState<string | null>(null);
-// null = Business
-// 'local' = Browser
+    useState<string | null>(null);
 
+  // 🔽 FILTER
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [onlyOwn, setOnlyOwn] = useState(false);
+  const [calendarUsers, setCalendarUsers] = useState<
+    { label: string; value: string }[]
+  >([]);
 
-const displayTZ = useMemo(
-  () => resolveDisplayTZ(displayTimezoneSetting),
-  [displayTimezoneSetting]
-);
+  const displayTZ = useMemo(
+    () => resolveDisplayTZ(displayTimezoneSetting),
+    [displayTimezoneSetting]
+  );
 
   // Stunden
   const hourStart = 7;
@@ -56,7 +59,7 @@ const displayTZ = useMemo(
     []
   );
 
-  // Woche (berechnet aus weekOffset)
+  // Woche
   const today = new Date();
   const weekStart = useMemo(() => {
     const base = addDays(today, weekOffset * 7);
@@ -68,34 +71,35 @@ const displayTZ = useMemo(
     [weekStart]
   );
 
-  // Woche laden
+  // -----------------------------
+  // Kalender laden (MIT FILTER)
+  // -----------------------------
   const loadWeek = async () => {
-    const res = await fetch(`/api/orbit/get/calendar/week?offset=${weekOffset}`, {
-      cache: "no-store",
+    if (!selectedUserId) return;
+
+    const params = new URLSearchParams({
+      offset: String(weekOffset),
+      user_id: selectedUserId,
+      only_own: onlyOwn ? "1" : "0",
     });
 
+    const res = await fetch(
+      `/api/orbit/get/calendar/week?${params.toString()}`,
+      { cache: "no-store" }
+    );
+
     if (!res.ok) {
-  const text = await res.text().catch(() => "");
-  console.error("Week API failed", {
-    status: res.status,
-    statusText: res.statusText,
-    url: res.url,
-    redirected: res.redirected,
-    contentType: res.headers.get("content-type"),
-    bodyPreview: text.slice(0, 300),
-  });
-
-  setEventsByDay({});
-  return;
-}
-
+      setEventsByDay({});
+      setLoading(false);
+      return;
+    }
 
     const data = await res.json();
     const events = (data.events ?? []) as OrbitEventData[];
 
     const map: Record<string, OrbitEventData[]> = {};
     events.forEach((e) => {
-const key = formatOrbit(e.starts_at, displayTZ, "yyyy-MM-dd");
+      const key = formatOrbit(e.starts_at, displayTZ, "yyyy-MM-dd");
       if (!map[key]) map[key] = [];
       map[key].push(e);
     });
@@ -103,12 +107,73 @@ const key = formatOrbit(e.starts_at, displayTZ, "yyyy-MM-dd");
     setEventsByDay(map);
   };
 
+  // -----------------------------
+  // Tageskontrolle laden
+  // -----------------------------
+  const loadDayStats = async () => {
+    if (!selectedUserId || !onlyOwn) return;
+
+    const res = await fetch(
+      `/api/orbit/get/day-stats/week?offset=${weekOffset}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return;
+
+    const json = await res.json();
+    setDayStatsByDay(json.statsByDay ?? {});
+  };
+
+  // -----------------------------
+  // User für Dropdown laden
+  // -----------------------------
   useEffect(() => {
-    loadWeek();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekOffset , displayTZ]);
+    async function loadUsers() {
+      const res = await fetch("/api/orbit/get/users/for-calendar");
+      if (!res.ok) return;
+      const json = await res.json();
+
+      setCalendarUsers(json.users ?? []);
+
+      if (!selectedUserId && json.users?.length) {
+        setSelectedUserId(json.users[0].value); // default: ich
+      }
+    }
+
+    loadUsers();
+  }, []);
+
+  useEffect(() => {
+  async function loadAll() {
+    if (!selectedUserId) return;
+
+    setLoading(true);
+
+    await loadWeek();
+    await loadDayStats();
+
+    setLoading(false);
+  }
+
+  loadAll();
+}, [weekOffset, displayTZ, selectedUserId, onlyOwn]);
+
+
+  if (loading) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-[#1b0f1a] to-[#2a1527]">
+      <div className="relative flex items-center justify-center">
+        <div className="absolute w-28 h-28 border-4 border-white/10 border-t-[#B244FF] rounded-full animate-spin" />
+        <img src="/loading.png" className="w-20 opacity-90" alt="logo" />
+      </div>
+      <p className="text-white/70 mt-6 text-lg tracking-wide">
+        Lade Kalender…
+      </p>
+    </div>
+  );
+}
 
   return (
+
     <main
       className="
         pt-20 
@@ -116,6 +181,7 @@ const key = formatOrbit(e.starts_at, displayTZ, "yyyy-MM-dd");
         min-h-screen 
         text-white
         bg-gradient-to-br from-[#120914] via-[#0b0710] to-[#050013]
+        mb-16
       "
     >
       <div className="max-w-6xl mx-auto space-y-6">
@@ -128,6 +194,28 @@ const key = formatOrbit(e.starts_at, displayTZ, "yyyy-MM-dd");
           onChangeDisplayTimezone={setDisplayTimezoneSetting}
         />
 
+        {/* 🔽 FILTER UI */}
+        <div className="flex items-center gap-4">
+          <OrbitDropdown
+            options={calendarUsers}
+            value={selectedUserId ?? ""}
+            onChange={(v) => {
+              setSelectedUserId(v);
+              setOnlyOwn(false);
+            }}
+            placeholder="Vertriebspartner wählen"
+          />
+
+
+          <label className="flex items-center gap-2 text-sm text-gray-300">
+            <input
+              type="checkbox"
+              checked={onlyOwn}
+              onChange={(e) => setOnlyOwn(e.target.checked)}
+            />
+            Nur Eigene
+          </label>
+        </div>
 
         <div
           className="
@@ -150,18 +238,24 @@ const key = formatOrbit(e.starts_at, displayTZ, "yyyy-MM-dd");
                 setGroupModalOpen(true);
                 return;
               }
-
               setSelectedEvent(ev);
               setModalOpen(true);
             }}
             onCreateEvent={(defaults) => {
-              setSelectedEvent(null);      // Create-Mode
-              setCreateDefaults(defaults); // Datum + Startzeit aus Doppelklick
+              setSelectedEvent(null);
+              setCreateDefaults(defaults);
               setModalOpen(true);
             }}
+            onEventMoved={() => loadWeek()}
           />
 
-
+          {/* 🔽 Tageskontrolle NUR bei "Nur Eigene" */}
+          {onlyOwn && (
+            <OrbitCalendarDayStatsRow
+              weekDays={weekDays}
+              statsByDay={dayStatsByDay}
+            />
+          )}
         </div>
       </div>
 
@@ -178,7 +272,6 @@ const key = formatOrbit(e.starts_at, displayTZ, "yyyy-MM-dd");
         onDeleted={() => loadWeek()}
       />
 
-
       <OrbitEventGroupModal
         open={groupModalOpen}
         onClose={() => {
@@ -192,10 +285,10 @@ const key = formatOrbit(e.starts_at, displayTZ, "yyyy-MM-dd");
         }}
       />
 
-
       <button
         onClick={() => {
-          setSelectedEvent(null); // ✅ Create-Mode
+          setSelectedEvent(null);
+          setCreateDefaults(null);
           setModalOpen(true);
         }}
         className="

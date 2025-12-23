@@ -45,21 +45,48 @@ export default function Navbar() {
         )}
 
         {/* RIGHT SIDE */}
-        {user ? (
-          <Link 
-            href="/logout" 
-            className="orbit-nav-link text-red-300 hover:text-red-400"
-          >
-            Abmelden
-          </Link>
-        ) : (
-          <Link 
-            href="/dashboard" 
-            className="orbit-nav-link"
-          >
-            Login
-          </Link>
-        )}
+{user ? (
+  <div className="flex items-center gap-4">
+
+    {/* 📅 Kalender Icon */}
+    <Link
+      href="/calendar"
+      className="orbit-nav-link flex items-center hover:text-white"
+      title="Kalender"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-5 w-5 text-white/80"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={1.5}
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M8 7V3m8 4V3m-9 8h10m-11 8h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+        />
+      </svg>
+    </Link>
+
+    {/* Logout */}
+    <Link
+      href="/logout"
+      className="orbit-nav-link text-red-300 hover:text-red-400"
+    >
+      Abmelden
+    </Link>
+  </div>
+) : (
+  <Link 
+    href="/dashboard" 
+    className="orbit-nav-link"
+  >
+    Login
+  </Link>
+)}
+
 
       </div>
     </nav>

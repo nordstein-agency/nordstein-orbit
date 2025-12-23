@@ -193,13 +193,21 @@ export default function OrbitEventModal({
     const starts_at = businessLocalToUtc(`${date} ${start}`).toISOString();
     const ends_at = businessLocalToUtc(`${date} ${end}`).toISOString();
 
-    // ⚠️ ERSTER KLICK → nur prüfen & warnen
+    // ⚠️ Konflikte nur EINMAL prüfen
     if (!conflictChecked) {
       const conflicts = await checkConflicts(starts_at, ends_at);
       setConflictCount(conflicts);
       setConflictChecked(true);
-      return;
+
+      // ✅ KEINE Konflikte → direkt speichern
+      if (conflicts === 0) {
+        // einfach weiterlaufen lassen
+      } else {
+        // ❗ Konflikte vorhanden → Warnung anzeigen, Speichern abbrechen
+        return;
+      }
     }
+
 
     setSaving(true);
 

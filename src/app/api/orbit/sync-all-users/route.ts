@@ -61,6 +61,7 @@ export async function GET() {
             last_name: u.last_name,
             email: u.email,
             role: u.role,
+            leader: u.leader
           })
           .eq("id", existingOrbitId);
 
@@ -74,10 +75,11 @@ export async function GET() {
         .insert({
             id: u.id,
             auth_id: u.auth_id,
-            first_name: u.first_name,
+            first_name: u.first_name, 
             last_name: u.last_name,
             email: u.email,
             role: u.role,
+            leader: u.leader 
         })
         .select("id")
         .single();
