@@ -27,6 +27,9 @@ export default function CalendarPageClient({}: CalendarPageClientProps) {
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [groupEvents, setGroupEvents] = useState<OrbitEventData[]>([]);
 
+  const [selectedStats, setSelectedStats] = useState<any | null>(null);
+
+
   const [eventsByDay, setEventsByDay] = useState<Record<string, OrbitEventData[]>>({});
   const [dayStatsByDay, setDayStatsByDay] = useState<Record<string, any[]>>({});
 
@@ -199,9 +202,10 @@ export default function CalendarPageClient({}: CalendarPageClientProps) {
             <OrbitCalendarDayStatsRow
               weekDays={weekDays}
               statsByDay={dayStatsByDay}
-              onSelectDay={(date) => {
+              onSelectDay={(date, stats) => {
                 setSelectedStatsDate(date);
                 setDayStatsModalOpen(true);
+                setSelectedStats(stats ?? null);
               }}
             />
           )}
@@ -211,6 +215,7 @@ export default function CalendarPageClient({}: CalendarPageClientProps) {
       <OrbitDayStatsModal
         open={dayStatsModalOpen}
         date={selectedStatsDate}
+        initialValues={selectedStats ?? undefined}
         onClose={() => {
           setDayStatsModalOpen(false);
           setSelectedStatsDate(null);

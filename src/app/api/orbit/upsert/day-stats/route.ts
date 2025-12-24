@@ -59,6 +59,8 @@ export async function POST(req: NextRequest) {
   on: Number(body.on ?? 0),
   up: Number(body.up ?? 0),
   pg: Number(body.pg ?? 0),
+  abs: Number(body.abs ?? 0),
+  eh: Number(body.eh ?? 0),
 };
 
 

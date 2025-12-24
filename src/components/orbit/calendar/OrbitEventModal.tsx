@@ -20,6 +20,7 @@ interface OrbitEventModalProps {
   createDefaults?: { date: string; start: string } | null;
   onSaved?: () => void;
   onDeleted?: () => void;
+  initialValues?: Record<string, number | null>;
 }
 
 function pad2(n: number) {
