@@ -48,6 +48,28 @@ export default function Navbar() {
 {user ? (
   <div className="flex items-center gap-4">
 
+{/* 📩 Inbox Icon */}
+    <Link
+      href="/activity"
+      className="orbit-nav-link flex items-center hover:text-white"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-5 w-5 text-white/80"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={1.5}
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M21.75 6.75v10.5A2.25 2.25 0 0119.5 19.5h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.918l-7.5 4.375a2.25 2.25 0 01-2.31 0L3.32 8.911A2.25 2.25 0 012.25 6.993V6.75"
+        />
+      </svg>
+    </Link>
+
+
     {/* 📅 Kalender Icon */}
     <Link
       href="/calendar"

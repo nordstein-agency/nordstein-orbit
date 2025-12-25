@@ -1,3 +1,4 @@
+// src/app/leads/applications/%5Bid%5D/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -46,6 +47,9 @@ export default function ApplicationDetailPage() {
   const [followUpTime, setFollowUpTime] = useState("");
   const [followUpDuration, setFollowUpDuration] = useState("60");
   const [followUpNote, setFollowUpNote] = useState("");
+
+  const [history, setHistory] = useState<any[]>([]);
+
 
   // 📍 Ort des Termins
   const [locationType, setLocationType] = useState<
@@ -99,6 +103,13 @@ export default function ApplicationDetailPage() {
       router.push("/leads/applications");
       return;
     }
+
+    const r = await fetch(
+  `/api/orbit/get/communication-history?source=application&source_id=${id}`,
+  { cache: "no-store" }
+);
+if (r.ok) setHistory(await r.json());
+
 
     const data = await res.json();
     setApplication(data);
@@ -173,7 +184,7 @@ if (!res.ok) {
 }
 
 
-    //router.push("/leads/applications");
+    router.push("/leads/applications");
   };
 
   
@@ -196,6 +207,86 @@ if (!res.ok) {
           {application.location || "—"}
         </p>
       </div>
+
+      {/* Bewerbungsdetails */}
+<div className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-4">
+  <p className="text-xs uppercase tracking-widest text-white/40">
+    Bewerbungsdetails
+  </p>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-white/80">
+    {application.email && (
+      <div>
+        <p className="text-white/40">E-Mail</p>
+        <p>{application.email}</p>
+      </div>
+    )}
+
+    {application.phone && (
+      <div>
+        <p className="text-white/40">Telefon</p>
+        <p>{application.phone}</p>
+      </div>
+    )}
+
+    {application.experience && (
+      <div className="md:col-span-2">
+        <p className="text-white/40">Erfahrung</p>
+        <p className="whitespace-pre-line">
+          {application.experience}
+        </p>
+      </div>
+    )}
+
+    {application.created_at && (
+      <div>
+        <p className="text-white/40">Eingegangen am</p>
+        <p>
+          {new Date(application.created_at).toLocaleDateString(
+            "de-AT"
+          )}
+        </p>
+      </div>
+    )}
+  </div>
+</div>
+
+
+{/* Kommunikationshistorie */}
+<div className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-4">
+  <h3 className="text-white font-semibold">
+    Kommunikationshistorie
+  </h3>
+
+  {history.length === 0 ? (
+    <p className="text-white/40 text-sm">
+      Noch keine Aktivitäten vorhanden
+    </p>
+  ) : (
+    <div className="divide-y divide-white/10">
+      {history.map((item) => (
+        <div key={item.id} className="py-3">
+          <p className="text-sm text-white font-medium">
+            {item.title}
+          </p>
+
+          {item.description && (
+            <p className="text-xs text-white/50 mt-1">
+              {item.description}
+            </p>
+          )}
+
+          <p className="text-xs text-white/30 mt-1">
+            {new Date(
+              item.starts_at ?? item.created_at
+            ).toLocaleString("de-AT")}
+          </p>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+
 
       {/* Status Cards */}
       <div>

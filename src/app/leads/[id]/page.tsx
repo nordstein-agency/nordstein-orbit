@@ -13,6 +13,9 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { getWallet } from "@/actions/getWallet";
 
 import { scoreLead } from "@/lib/leadScore";
+import { addMinutesISO } from "@/lib/orbit/time/addMinutes";
+import { businessLocalToUtc } from "@/lib/orbit/timezone";
+import { OrbitDropdown } from "@/components/orbit/OrbitDropdown";
 
 // ---------------------
 // Lead Typ
@@ -61,6 +64,35 @@ export default function LeadDetailPage() {
   const [importing, setImporting] = useState(false);
 const [imported, setImported] = useState(false);
 
+const [history, setHistory] = useState<any[]>([]);
+
+
+
+const LEAD_STATUSES = {
+  Neu: "text-white/70",
+  "Termin vereinbart": "text-green-400",
+  "Erreicht, nochmals kontaktieren": "text-yellow-400",
+  "Nicht erreicht": "text-blue-400",
+  "Kein Interesse": "text-red-400",
+} as const;
+
+const [selectedStatus, setSelectedStatus] =
+  useState<keyof typeof LEAD_STATUSES>("Neu");
+
+const [showInlineDetails, setShowInlineDetails] = useState(false);
+
+// Termin / Followup Inputs
+const [appointmentType, setAppointmentType] = useState("");
+const [followUpDate, setFollowUpDate] = useState("");
+const [followUpTime, setFollowUpTime] = useState("");
+const [followUpDuration, setFollowUpDuration] = useState("60");
+const [followUpNote, setFollowUpNote] = useState("");
+
+const [locationType, setLocationType] =
+  useState<"office" | "online" | "other" | "">("");
+const [locationValue, setLocationValue] = useState("");
+
+
 
   // ---------------------
   // Wallet laden
@@ -100,6 +132,9 @@ const [imported, setImported] = useState(false);
 
       const typedLead = data as Lead;
       setLead(typedLead);
+      setSelectedStatus(
+  (typedLead.status as keyof typeof LEAD_STATUSES) ?? "Neu"
+);
 
       setScore({
         total: typedLead.score ?? 0,
@@ -149,6 +184,83 @@ const [imported, setImported] = useState(false);
 
     setShowConfirmModal(true);
   }
+
+  const handleStatusSelect = (status: keyof typeof LEAD_STATUSES) => {
+  setSelectedStatus(status);
+
+  if (status === "Neu" || status === "Kein Interesse") {
+    updateLeadStatus(status);
+    setShowInlineDetails(false);
+    return;
+  }
+
+  setShowInlineDetails(true);
+};
+
+const updateLeadStatus = async (status: keyof typeof LEAD_STATUSES) => {
+  const isAppointment = status === "Termin vereinbart";
+
+  let starts_at: string | null = null;
+  let ends_at: string | null = null;
+
+  if (isAppointment) {
+    if (!followUpDate || !followUpTime) {
+      alert("Bitte Datum und Uhrzeit angeben");
+      return;
+    }
+
+    const startUtc = businessLocalToUtc(
+      `${followUpDate} ${followUpTime}`
+    );
+
+    const duration = Number(followUpDuration || "60");
+    const endUtc = addMinutesISO(startUtc.toISOString(), duration);
+
+    starts_at = startUtc.toISOString();
+    ends_at = endUtc;
+  }
+
+  const res = await fetch("/api/orbit/update/followup-status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      source: "lead",
+      source_id: lead!.id,
+      user_id: lead!.owner,
+      status,
+
+      follow_up: {
+        date: followUpDate,
+        note: followUpNote,
+      },
+
+      appointment: isAppointment
+        ? {
+            type: appointmentType,
+            starts_at,
+            ends_at,
+            locationType,
+            locationValue,
+          }
+        : null,
+    }),
+  });
+
+  if (!res.ok) {
+    alert("Fehler beim Speichern");
+    return;
+  }
+
+  // Reload history after change
+  const h = await fetch(
+    `/api/orbit/get/communication-history?source=lead&source_id=${lead!.id}`,
+    { cache: "no-store" }
+  );
+  if (h.ok) setHistory(await h.json());
+
+  setShowInlineDetails(false);
+};
+
 
   async function handleImportToOne() {
   if (!lead) return;
@@ -445,6 +557,199 @@ const [imported, setImported] = useState(false);
           <p className="text-white/70">E-Mail: {lead.email ?? "—"}</p>
           <p className="text-white/70">Telefon: {lead.phone ?? "—"}</p>
         </div>
+
+        {/* Kommunikationshistorie */}
+<div className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-4 md:col-span-2">
+  <h3 className="text-white font-semibold">
+    Kommunikationshistorie
+  </h3>
+
+  {history.length === 0 ? (
+    <p className="text-white/40 text-sm">
+      Noch keine Aktivitäten vorhanden
+    </p>
+  ) : (
+    <div className="divide-y divide-white/10">
+      {history.map((item) => (
+        <div key={item.id} className="py-3">
+          <p className="text-sm text-white font-medium">
+            {item.title}
+          </p>
+
+          {item.description && (
+            <p className="text-xs text-white/50 mt-1">
+              {item.description}
+            </p>
+          )}
+
+          <p className="text-xs text-white/30 mt-1">
+            {new Date(
+              item.starts_at ?? item.created_at
+            ).toLocaleString("de-AT")}
+          </p>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+
+{/* STATUS PANEL */}
+<div className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-4 md:col-span-2">
+  <h3 className="text-white font-semibold">
+    Status setzen
+  </h3>
+
+  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+    {(Object.keys(LEAD_STATUSES) as Array<
+      keyof typeof LEAD_STATUSES
+    >).map((status) => (
+      <button
+        key={status}
+        onClick={() => handleStatusSelect(status)}
+        className={`
+          p-4 rounded-xl border border-white/10 bg-white/5
+          text-left transition hover:bg-white/10
+          ${selectedStatus === status ? "ring-2 ring-[#B244FF]" : ""}
+        `}
+      >
+        <p className={`text-sm font-semibold ${LEAD_STATUSES[status]}`}>
+          {status}
+        </p>
+        <p className="text-xs text-white/40 mt-1">
+          Status setzen
+        </p>
+      </button>
+    ))}
+  </div>
+</div>
+
+
+{/* Inline Detail Panel */}
+<div
+  className={`
+    overflow-hidden transition-all duration-300 ease-out
+    ${showInlineDetails ? "max-h-[900px] opacity-100 mt-6" : "max-h-0 opacity-0"}
+  `}
+>
+  <div className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-5">
+
+    {selectedStatus === "Termin vereinbart" ? (
+      <>
+        <h3 className="text-white font-semibold">
+          Termin vereinbaren
+        </h3>
+
+        <OrbitDropdown
+          value={appointmentType}
+          placeholder="Art des Termins"
+          options={[
+            { label: "Vorstellungsgespräch", value: "Vorstellungsgespräch" },
+            { label: "Verkaufsgespräch", value: "Verkaufsgespräch" },
+            { label: "Veranstaltung", value: "Veranstaltung" },
+          ]}
+          onChange={setAppointmentType}
+        />
+
+        <div className="grid grid-cols-2 gap-3">
+          <input
+            type="date"
+            value={followUpDate}
+            onChange={(e) => setFollowUpDate(e.target.value)}
+            className="w-full px-4 py-2 rounded-xl bg-black/40 border border-white/10 text-white"
+          />
+          <input
+            type="time"
+            value={followUpTime}
+            onChange={(e) => setFollowUpTime(e.target.value)}
+            className="w-full px-4 py-2 rounded-xl bg-black/40 border border-white/10 text-white"
+          />
+        </div>
+
+        <OrbitDropdown
+          value={followUpDuration}
+          placeholder="Dauer"
+          options={[
+            { label: "30 Minuten", value: "30" },
+            { label: "60 Minuten", value: "60" },
+            { label: "90 Minuten", value: "90" },
+          ]}
+          onChange={setFollowUpDuration}
+        />
+
+        {/* Ort */}
+        <div className="space-y-2">
+          <p className="text-sm text-white/70 font-medium">
+            Ort des Termins
+          </p>
+
+          <div className="flex gap-4">
+            {[
+              { key: "office", label: "Im Büro" },
+              { key: "online", label: "Online" },
+              { key: "other", label: "Anderer Ort" },
+            ].map((opt) => (
+              <label
+                key={opt.key}
+                className="flex items-center gap-2 text-sm text-white/70 cursor-pointer"
+              >
+                <input
+                  type="radio"
+                  checked={locationType === opt.key}
+                  onChange={() => setLocationType(opt.key as any)}
+                  className="accent-[#B244FF]"
+                />
+                {opt.label}
+              </label>
+            ))}
+          </div>
+
+          <input
+            type="text"
+            value={locationValue}
+            onChange={(e) => setLocationValue(e.target.value)}
+            className="w-full px-4 py-2 rounded-xl bg-black/40 border border-white/10 text-white"
+          />
+        </div>
+      </>
+    ) : (
+      <>
+        <h3 className="text-white font-semibold">
+          Nächstes Follow-Up
+        </h3>
+
+        <input
+          type="date"
+          value={followUpDate}
+          onChange={(e) => setFollowUpDate(e.target.value)}
+          className="w-full px-4 py-2 rounded-xl bg-black/40 border border-white/10 text-white"
+        />
+
+        <textarea
+          placeholder="Notiz"
+          value={followUpNote}
+          onChange={(e) => setFollowUpNote(e.target.value)}
+          className="w-full px-4 py-2 rounded-xl bg-black/40 border border-white/10 text-white"
+        />
+      </>
+    )}
+
+    <div className="flex justify-end gap-3 pt-2">
+      <OrbitButton
+        variant="secondary"
+        onClick={() => setShowInlineDetails(false)}
+      >
+        Abbrechen
+      </OrbitButton>
+
+      <OrbitButton
+        onClick={() => updateLeadStatus(selectedStatus)}
+      >
+        Speichern
+      </OrbitButton>
+    </div>
+  </div>
+</div>
+
 
         {/* SCORE BREAKDOWN */}
         {score && (

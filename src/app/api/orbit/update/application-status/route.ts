@@ -1,5 +1,11 @@
+// src/app/api/orbit/update/application-status/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseOrbitAdmin } from "@/lib/supabase/admin";
+import { use } from "react";
+import { businessLocalToUtc } from "@/lib/orbit/timezone";
+import { addMinutesISO } from "@/lib/orbit/time/addMinutes";
+import { source } from "framer-motion/client";
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,24 +56,43 @@ export async function POST(req: NextRequest) {
       );
     }
 
+
+
+
+
+
     // --------------------------------------------------
     // 3️⃣ TERMIN VEREINBART → NUR KALENDER
     // --------------------------------------------------
+
+
     if (
       status === "Termin vereinbart" &&
       follow_up?.followUpDate &&
       follow_up?.followUpTime &&
       follow_up?.appointmentType
     ) {
-      const startsAt = new Date(
-        `${follow_up.followUpDate}T${follow_up.followUpTime}`
-      );
 
-      const endsAt = new Date(startsAt);
-      endsAt.setMinutes(
-        endsAt.getMinutes() +
-          Number(follow_up.followUpDuration ?? 60)
-      );
+        
+      const startsAt = businessLocalToUtc(
+  `${follow_up.followUpDate} ${follow_up.followUpTime}`
+);
+
+const endsAt = addMinutesISO(
+  startsAt.toISOString(),
+  Number(follow_up.followUpDuration ?? 60)
+);
+
+
+    // 🔹 Bewerbungsname für Kalendertitel laden
+    const { data: application } = await supabaseOrbitAdmin
+    .from("applications")
+    .select("name")
+    .eq("id", id)
+    .single();
+
+    const calendarTitle = application?.name ?? "Bewerbung";
+
 
       const { error: calendarError } =
         await supabaseOrbitAdmin
@@ -75,11 +100,13 @@ export async function POST(req: NextRequest) {
           .insert({
             user_id, // ✅ DIREKT VOM FRONTEND
             starts_at: startsAt.toISOString(),
-            ends_at: endsAt.toISOString(),
-            title: follow_up.appointmentType, // z. B. Vorstellungsgespräch
-            type: follow_up.appointmentType,
+            ends_at: endsAt,
+            title: calendarTitle,
+            type: follow_up.appointmentType === "Verkaufsgespräch" ? "VK" : "VG",
             location: follow_up.locationValue ?? null,
             notes: follow_up.followUpNote ?? null,
+            source: "application",
+            source_id: id,
           });
 
       if (calendarError) {
@@ -92,22 +119,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
+
+
+
+
+
+
+
+
+
+
     // --------------------------------------------------
     // 4️⃣ ANDERE STATI → FOLLOW-UPS
     // --------------------------------------------------
+    const shouldCreateFollowUp =
+  status === "Erreicht, nochmals kontaktieren" ||
+  status === "Nicht erreicht";
+
     if (
+        shouldCreateFollowUp &&
       follow_up &&
       (follow_up.followUpDate || follow_up.followUpNote)
     ) {
-      await supabaseOrbitAdmin
-        .from("application_followups")
-        .insert({
-          application_id: id,
-          status,
-          date: follow_up.followUpDate ?? null,
-          time: follow_up.followUpTime ?? null,
-          note: follow_up.followUpNote ?? null,
-        });
+
+        console.log("FOLLOWUP INSERT", follow_up, user_id, id, status);
+      const { error, data } = await supabaseOrbitAdmin
+  .from("application_followups")
+  .insert({
+    user_id,
+    application_id: id,
+    status,
+    date: follow_up.followUpDate ?? null,
+    note: follow_up.followUpNote ?? null,
+  })
+  .select()
+  .single();
+
+console.log("FOLLOWUP INSERT RESULT", { data, error });
+
+if (error) {
+  return NextResponse.json(
+    { error: error.message, details: error },
+    { status: 500 }
+  );
+}
+
     }
 
     return NextResponse.json({ success: true });
