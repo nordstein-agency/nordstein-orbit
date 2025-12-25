@@ -1,14 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import OrbitLoaderCore from "./OrbitLoaderCore";
 
 export default function OrbitPageLoader({
-  delay = 400,      // minimale Ladezeit
-  fadeDuration = 300 // Dauer des Fade-Out
+  delay = 400,
+  fadeDuration = 300,
+  label = "Orbit lädt dein Dashboard…",
 }: {
   delay?: number;
   fadeDuration?: number;
+  label?: string;
 }) {
+
+
   const [visible, setVisible] = useState(true);
   const [fadeOut, setFadeOut] = useState(false);
 
@@ -26,35 +31,15 @@ export default function OrbitPageLoader({
   return (
     <div
       className={`
-        fixed inset-0 z-50 flex flex-col items-center justify-center
+        fixed inset-0 z-50
+        flex items-center justify-center
         bg-black/90 backdrop-blur-xl
-        transition-opacity duration-[${fadeDuration}ms]
+        transition-opacity
         ${fadeOut ? "opacity-0" : "opacity-100"}
       `}
+      style={{ transitionDuration: `${fadeDuration}ms` }}
     >
-      <div
-        className="
-          relative w-24 h-24 
-          animate-[orbit-spin_6s_linear_infinite]
-          flex items-center justify-center
-        "
-      >
-        <div className="absolute inset-0 rounded-full blur-xl bg-[#b244ff]/30" />
-
-        <img
-          src="/orbit.png"
-          alt="Orbit Loader"
-          className="
-            w-16 h-16 
-            animate-[orbit-float_3s_ease-in-out_infinite]
-            drop-shadow-[0_0_15px_#b244ff]
-          "
-        />
-      </div>
-
-      <p className="mt-6 text-sm text-gray-400 tracking-wide">
-        Orbit lädt dein Dashboard…
-      </p>
+<OrbitLoaderCore label={label} size={96} />
     </div>
   );
 }

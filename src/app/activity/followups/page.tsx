@@ -5,12 +5,26 @@ import { useEffect, useState } from "react";
 import { createSupabaseAuthClient } from "@/lib/supabase/authClient";
 import { OrbitDropdown } from "@/components/orbit/OrbitDropdown";
 import { useRouter } from "next/navigation";
+import OrbitPageLoader from "@/components/orbit/OrbitPageLoader";
 
 
 /* -------------------------------------------------
  Types
 ------------------------------------------------- */
 
+/*
+type FollowUp = {
+  id: string;
+  date: string | null;
+  note: string | null;
+  done: boolean;
+  user_id: string;
+  user: {
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
+};
+*/
 
 type FollowUp = {
   id: string;
@@ -18,6 +32,8 @@ type FollowUp = {
   note: string | null;
   done: boolean;
   user_id: string;
+  created_at: string;
+  source: "application" | "lead"; // 🔥 NEU
   user: {
     first_name: string | null;
     last_name: string | null;
@@ -42,9 +58,10 @@ export default function ActivityFollowUpsPage() {
   // Scope / Filter
   const [scopeMode, setScopeMode] = useState<"me" | "employee">("me");
   const [includeStructure, setIncludeStructure] = useState(true);
-  const [typeFilter, setTypeFilter] = useState<"applications" | "leads">(
-  "applications"
+  const [typeFilter, setTypeFilter] = useState<"all" | "applications" | "leads">(
+  "all"
 );
+
 
 
   // Users
@@ -162,6 +179,18 @@ export default function ActivityFollowUpsPage() {
     return new Date(y, m - 1, d);
   }
 
+  const filteredItems = items.filter((f) => {
+  if (typeFilter === "all") return true;
+  if (typeFilter === "applications") return f.source === "application";
+  return f.source === "lead";
+});
+
+
+
+if (loading) {
+  return <OrbitPageLoader label="Follow Ups werden geladen…" />;
+}
+
   /* -------------------------------------------------
      UI
   ------------------------------------------------- */
@@ -228,13 +257,16 @@ export default function ActivityFollowUpsPage() {
         <p className="text-xs uppercase text-white/45 mb-3">Art</p>
 
         <OrbitDropdown
-            value={typeFilter}
-            onChange={(v) => setTypeFilter(v as "applications" | "leads")}
-            options={[
+        value={typeFilter}
+        onChange={(v) => setTypeFilter(v as "all" | "applications" | "leads")}
+        options={[
+            { value: "all", label: "Alle" },
             { value: "applications", label: "Bewerbungen" },
             { value: "leads", label: "Leads" },
-            ]}
+        ]}
+        placeholder="Art wählen"
         />
+
         </div>
 
 
@@ -249,7 +281,7 @@ export default function ActivityFollowUpsPage() {
       </div>
 
       {/* TABLE */}
-      <div className="bg-black/20 border border-white/10 rounded-2xl overflow-hidden">
+      <div className="bg-black/20 border border-white/10 rounded-2xl overflow-hidden mb-12">
         {loading ? (
           <div className="p-8 text-white/50">Follow Ups werden geladen …</div>
         ) : items.length === 0 ? (
@@ -258,15 +290,18 @@ export default function ActivityFollowUpsPage() {
           <table className="w-full text-sm">
             <thead className="bg-white/5 text-white/60">
               <tr>
+                <th className="px-6 py-3 text-left">Art</th>
                 <th className="px-6 py-3 text-left">Fällig</th>
                 <th className="px-6 py-3 text-left">Notiz</th>
                 <th className="px-6 py-3 text-left">Betreuer</th>
                 <th className="px-6 py-3 text-left">Status</th>
             </tr>
 
+
             </thead>
             <tbody className="divide-y divide-white/5">
-              {items.map((f) => {
+              {filteredItems.map((f) => {
+
                 const dueDate = parseISODate(f.date);
                 const overdue =
                   !f.done && dueDate !== null && dueDate < new Date();
@@ -281,6 +316,17 @@ export default function ActivityFollowUpsPage() {
                     transition
                 "
                 >
+                    <td className="px-6 py-4">
+  <span
+    className={`inline-flex items-center px-2 py-1 rounded-full text-xs border ${
+      f.source === "application"
+        ? "bg-[#B244FF]/10 border-[#B244FF]/30 text-[#d8a5d0]"
+        : "bg-blue-500/10 border-blue-500/30 text-blue-300"
+    }`}
+  >
+    {f.source === "application" ? "Bewerbung" : "Lead"}
+  </span>
+</td>
 
                     <td className="px-6 py-4">
                       {dueDate ? dueDate.toLocaleDateString("de-DE") : "—"}

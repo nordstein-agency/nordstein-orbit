@@ -11,6 +11,8 @@ import { createSupabaseAuthClient } from "@/lib/supabase/authClient";
 import type { OrbitEventData } from "@/components/orbit/calendar/OrbitCalendarEvent";
 import { businessLocalToUtc } from "@/lib/orbit/timezone";
 import { formatOrbit } from "@/lib/orbit/timezone";
+import OrbitConfirmModal from "@/components/orbit/OrbitConfirmModal";
+
 
 
 interface OrbitEventModalProps {
@@ -75,6 +77,9 @@ export default function OrbitEventModal({
   const [conflictCount, setConflictCount] = useState<number | null>(null);
   const [conflictChecked, setConflictChecked] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
 
   const [userId, setUserId] = useState<string | null>(null);
   const isEdit = !!event?.id;
@@ -261,7 +266,7 @@ export default function OrbitEventModal({
   // -------------------------------
   const handleDelete = async () => {
     if (!event?.id) return;
-    if (!confirm("Termin wirklich löschen?")) return;
+    //if (!confirm("Termin wirklich löschen?")) return;
 
     setSaving(true);
     const res = await fetch("/api/orbit/delete/calendar/event", {
@@ -362,9 +367,14 @@ export default function OrbitEventModal({
 
       <div className="flex justify-end mt-5 gap-2">
         {isEdit && (
-          <OrbitButton className="px-4 py-2 text-xs bg-red-500/20 border border-red-400/30 text-red-200 rounded-full hover:bg-red-500/25" onClick={handleDelete} disabled={saving}>
-            Löschen
-          </OrbitButton>
+          <OrbitButton
+  className="px-4 py-2 text-xs bg-red-500/20 border border-red-400/30 text-red-200 rounded-full hover:bg-red-500/25"
+  onClick={() => setConfirmDeleteOpen(true)}
+  disabled={saving}
+>
+  Löschen
+</OrbitButton>
+
         )}
 
         <OrbitButton className="px-4 py-2 text-xs bg-white/5 border border-white/15 rounded-full hover:bg-white/10" onClick={onClose} disabled={saving}>
@@ -375,6 +385,25 @@ export default function OrbitEventModal({
           {saving ? "Speichere…" : "Speichern"}
         </OrbitButton>
       </div>
+
+      <OrbitConfirmModal
+  open={confirmDeleteOpen}
+  title="Termin löschen"
+  description="Dieser Termin wird endgültig gelöscht und kann nicht wiederhergestellt werden."
+  confirmLabel="Ja, löschen"
+  cancelLabel="Abbrechen"
+  danger
+  loading={saving}
+  onCancel={() => setConfirmDeleteOpen(false)}
+  onConfirm={async () => {
+    setConfirmDeleteOpen(false);
+    await handleDelete();
+  }}
+/>
+
     </OrbitModal>
+    
+
+
   );
 }

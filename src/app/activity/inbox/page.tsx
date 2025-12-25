@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import OrbitButton from "@/components/orbit/OrbitButton";
 import { createSupabaseAuthClient } from "@/lib/supabase/authClient";
+import OrbitBlockLoader from "@/components/orbit/OrbitBlockLoader";
+import OrbitPageLoader from "@/components/orbit/OrbitPageLoader";
 
 type InboxItem = {
   id: string;
@@ -20,6 +22,8 @@ export default function ActivityInboxPage() {
   const [filtered, setFiltered] = useState<InboxItem[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<InboxItem | null>(null);
+
+  
 
   // --------------------------------------------------
   // Load Inbox
@@ -92,6 +96,8 @@ export default function ActivityInboxPage() {
     load();
   }, [supabase]);
 
+  
+
   // --------------------------------------------------
   // Search Filter
   // --------------------------------------------------
@@ -109,16 +115,18 @@ export default function ActivityInboxPage() {
   // --------------------------------------------------
   // Loading State
   // --------------------------------------------------
+
+
   if (loading) {
-    return (
-      <div className="py-20 text-center text-white/50">
-        Inbox wird geladen …
-      </div>
-    );
-  }
+  return <OrbitPageLoader label="Nachrichten werden geladen…" />;
+}
 
   return (
+
+    
     <>
+              
+    
       {/* Search */}
       <div className="mb-6">
         <input
@@ -130,8 +138,9 @@ export default function ActivityInboxPage() {
       </div>
 
       {/* Messages Table */}
-      <div className="bg-black/20 border border-white/10 rounded-2xl overflow-hidden">
+      <div className="bg-black/20 border border-white/10 rounded-2xl overflow-hidden">      
         <table className="w-full text-sm">
+            
           <thead className="bg-white/5 text-white/60">
             <tr>
               <th className="px-6 py-3 text-left">Datum</th>

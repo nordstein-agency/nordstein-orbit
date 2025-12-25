@@ -1,3 +1,4 @@
+// src/app/api/orbit/get/followups/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseOrbitAdmin } from "@/lib/supabase/admin";
 
@@ -45,6 +46,22 @@ export async function GET(req: NextRequest) {
       );
     }
 
+
+    const { data: leadFollowups, error: lfError } =
+  await supabaseOrbitAdmin
+    .from("lead_followups")
+    .select("id, date, note, done, user_id, created_at")
+    .in("user_id", userIds)
+    .order("date", { ascending: true });
+
+if (lfError) {
+  return NextResponse.json(
+    { error: lfError.message },
+    { status: 500 }
+  );
+}
+
+
     if (!followups || followups.length === 0) {
       return NextResponse.json({ data: [] });
     }
@@ -84,20 +101,38 @@ export async function GET(req: NextRequest) {
       userMap[u.id] = u;
     });
 
-    // --------------------------------------------------
-    // 6️⃣ UI-fertiges Result
-    // --------------------------------------------------
-    const result = followups.map((f) => ({
-      id: f.id,
-      date: f.date,
-      note: f.note,
-      done: f.done,
-      user_id: f.user_id,
-      created_at: f.created_at,
-      user: userMap[f.user_id] ?? null,
-    }));
+    const applicationItems = (followups ?? []).map((f) => ({
+  id: f.id,
+  date: f.date,
+  note: f.note,
+  done: f.done,
+  user_id: f.user_id,
+  created_at: f.created_at,
+  source: "application",
+  user: userMap[f.user_id] ?? null,
+}));
 
-    return NextResponse.json({ data: result });
+const leadItems = (leadFollowups ?? []).map((f) => ({
+  id: f.id,
+  date: f.date,
+  note: f.note,
+  done: f.done,
+  user_id: f.user_id,
+  created_at: f.created_at,
+  source: "lead",
+  user: userMap[f.user_id] ?? null,
+}));
+
+const result = [...applicationItems, ...leadItems].sort(
+  (a, b) =>
+    new Date(a.date ?? a.created_at).getTime() -
+    new Date(b.date ?? b.created_at).getTime()
+);
+
+return NextResponse.json({ data: result });
+
+
+
   } catch (e: any) {
     return NextResponse.json(
       { error: e?.message ?? "Unknown error" },

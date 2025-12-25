@@ -1,3 +1,4 @@
+// src/app/alliance/page.tsx
 "use client";
 import Link from "next/link";
 import OrbitButton from "@/components/orbit/OrbitButton";
@@ -7,6 +8,9 @@ import AllianceSection from "@/components/alliance/AllianceSection";
 import AllianceHeading from "@/components/alliance/AllianceHeading";
 import AllianceCard from "@/components/alliance/AllianceCard";
 import { AllianceButtonLink } from "@/components/alliance/AllianceButton";
+import AllianceWorldMapMock from "@/components/alliance/AllianceWorldMapMock";
+import AllianceWorldMap from "@/components/alliance/AllianceWorldMap";
+
 
 export default function AlliancePage() {
   return (
@@ -93,6 +97,23 @@ export default function AlliancePage() {
           />
         </div>
       </AllianceSection>
+
+      {/* ========================== */}
+{/* ========================== */}
+{/* 🌍 Alliance World Map */}
+{/* ========================== */}
+<AllianceSection>
+  <AllianceHeading>Globale Partnerstruktur</AllianceHeading>
+
+  <p className="text-[#d3c4d1] leading-relaxed mb-6 max-w-3xl">
+    Die Nordstein Alliance ist international aktiv.  
+    Gold markiert Länder mit aktiven Partnern im Netzwerk.
+  </p>
+
+  <AllianceWorldMap />
+</AllianceSection>
+
+
 
       {/* ========================== */}
       {/* 🔥 Section 3 — Roadmap */}

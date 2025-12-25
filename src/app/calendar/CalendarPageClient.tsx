@@ -1,6 +1,7 @@
 // src/app/calendar/CalendarPageClient.tsx
 "use client";
 
+import OrbitBlockLoader from "@/components/orbit/OrbitBlockLoader";
 import { useEffect, useMemo, useState } from "react";
 import OrbitCalendarHeader from "@/components/orbit/calendar/OrbitCalendarHeader";
 import OrbitCalendarWeekView from "@/components/orbit/calendar/OrbitCalendarWeekView";
@@ -130,17 +131,7 @@ export default function CalendarPageClient({}: CalendarPageClientProps) {
     loadAll();
   }, [weekOffset, displayTZ, selectedUserId, onlyOwn]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-[#1b0f1a] to-[#2a1527]">
-        <div className="relative flex items-center justify-center">
-          <div className="absolute w-28 h-28 border-4 border-white/10 border-t-[#B244FF] rounded-full animate-spin" />
-          <img src="/loading.png" className="w-20 opacity-90" />
-        </div>
-        <p className="text-white/70 mt-6 text-lg">Lade Kalender…</p>
-      </div>
-    );
-  }
+
 
   return (
     <main className="pt-20 px-6 min-h-screen text-white bg-gradient-to-br from-[#120914] via-[#0b0710] to-[#050013] mb-16">
@@ -175,7 +166,11 @@ export default function CalendarPageClient({}: CalendarPageClientProps) {
           </label>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-black/40 backdrop-blur-2xl overflow-hidden">
+        <div className="relative rounded-3xl border border-white/10 bg-black/40 backdrop-blur-2xl overflow-hidden">
+          
+          {loading && <OrbitBlockLoader label="Kalender lädt…" />}
+
+          
           <OrbitCalendarWeekView
             weekDays={weekDays}
             hours={hours}
