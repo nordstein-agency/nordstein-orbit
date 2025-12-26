@@ -10,9 +10,12 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<{ token: string }> }
 ) {
-  const { token } = await context.params;
+  let { token } = await context.params;
 
-  // 1️⃣ Token → User auflösen
+  if (token.endsWith(".ics")) {
+    token = token.slice(0, -4);
+  }
+
   const { data: tokenRow } = await supabaseOrbitAdmin
     .from("calendar_ics_tokens")
     .select("user_id")
@@ -23,14 +26,12 @@ export async function GET(
     return new NextResponse("Invalid calendar token", { status: 404 });
   }
 
-  // 2️⃣ NUR eigene Termine laden
   const { data: events } = await supabaseOrbitAdmin
     .from("orbit_calendar_events")
     .select("*")
     .eq("user_id", tokenRow.user_id)
     .order("starts_at", { ascending: true });
 
-  // 3️⃣ ICS bauen
   let ics = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Nordstein Orbit//Calendar//DE
