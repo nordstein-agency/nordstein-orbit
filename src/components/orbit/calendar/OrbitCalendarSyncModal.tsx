@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseAuthClient } from "@/lib/supabase/authClient";
+import OrbitButton from "../OrbitButton";
 
 interface Props {
   open: boolean;
@@ -67,12 +68,12 @@ export default function OrbitCalendarSyncModal({ open, onClose }: Props) {
               {icsUrl}
             </div>
 
-            <button
+            <OrbitButton
               onClick={() => navigator.clipboard.writeText(icsUrl)}
               className="w-full mb-3 px-4 py-2 rounded-lg bg-[#B244FF] text-black font-medium"
             >
               Link kopieren
-            </button>
+            </OrbitButton>
 
             <p className="text-xs text-gray-400">
               Apple Kalender → „Kalenderabonnement hinzufügen“ → Link einfügen
