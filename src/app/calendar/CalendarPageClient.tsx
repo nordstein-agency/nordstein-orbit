@@ -13,6 +13,9 @@ import { startOfWeek, addDays } from "date-fns";
 import type { OrbitEventData } from "@/components/orbit/calendar/OrbitCalendarEvent";
 import { resolveDisplayTZ, formatOrbit } from "@/lib/orbit/timezone";
 import OrbitDayStatsModal from "@/components/orbit/calendar/OrbitDayStatsModal";
+import OrbitButton from "@/components/orbit/OrbitButton";
+import OrbitCalendarSyncModal from "@/components/orbit/calendar/OrbitCalendarSyncModal";
+
 
 
 interface CalendarPageClientProps {}
@@ -20,6 +23,9 @@ interface CalendarPageClientProps {}
 export default function CalendarPageClient({}: CalendarPageClientProps) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const [calendarSyncOpen, setCalendarSyncOpen] = useState(false);
+
 
   const [dayStatsModalOpen, setDayStatsModalOpen] = useState(false);
   const [selectedStatsDate, setSelectedStatsDate] = useState<string | null>(null);
@@ -164,6 +170,22 @@ export default function CalendarPageClient({}: CalendarPageClientProps) {
             />
             Nur Eigene
           </label>
+
+          <OrbitButton
+  onClick={() => setCalendarSyncOpen(true)}
+  className="
+    ml-auto
+    px-4 py-2
+    rounded-xl
+    bg-[#120914]
+    text-sm text-black
+    hover:border-[#B244FF]
+    shadow-[0_0_15px_rgba(178,68,255,0.25)]
+  "
+>
+  Kalender synchronisieren
+</OrbitButton>
+
         </div>
 
         <div className="relative rounded-3xl border border-white/10 bg-black/40 backdrop-blur-2xl overflow-hidden">
@@ -236,6 +258,12 @@ export default function CalendarPageClient({}: CalendarPageClientProps) {
           setModalOpen(true);
         }}
       />
+
+      <OrbitCalendarSyncModal
+  open={calendarSyncOpen}
+  onClose={() => setCalendarSyncOpen(false)}
+/>
+
     </main>
   );
 }
