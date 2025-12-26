@@ -137,7 +137,7 @@ export default function Navbar() {
           </div>
 
 
-          <div className="flex flex-col px-6 py-8 gap-6 text-lg">
+          <div className="flex flex-col bg-black px-6 py-8 gap-6 text-lg">
             <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="text-white">
               Dashboard
             </Link>
