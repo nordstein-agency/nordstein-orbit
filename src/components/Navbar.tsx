@@ -126,7 +126,7 @@ export default function Navbar() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-lg flex flex-col">
 
 
-          <div className="flex justify-between items-center px-6 py-4 border-b border-white/10">
+          <div className="flex justify-between bg-black items-center px-6 py-4 border-b border-white/10">
             <span className="text-xl font-bold text-white">ORBIT</span>
             <button
               onClick={() => setMobileOpen(false)}
