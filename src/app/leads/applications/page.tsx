@@ -16,6 +16,12 @@ type Application = {
   phone: string | null;
   experience: string | null;
   status: string | null;
+
+  user_id: string;
+  assigned_user?: {
+    id: string;
+    name: string;
+  } | null;
 };
 
 export default function ApplicationsPage() {
@@ -27,12 +33,16 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [includeStructure, setIncludeStructure] = useState(false);
+
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
   // Sorting
-  const [sortField, setSortField] = useState<"created_at" | "name">("created_at");
+  const [sortField, setSortField] =
+    useState<"created_at" | "name">("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   // Pagination
@@ -55,29 +65,28 @@ export default function ApplicationsPage() {
         return;
       }
 
-      // Rolle laden
-      const roleRes = await fetch(`/api/orbit/get/my-role?auth_id=${user.id}`, {
-        cache: "no-store",
-      });
-
-      let role: string | null = null;
+      const roleRes = await fetch(
+        `/api/orbit/get/my-role?auth_id=${user.id}`,
+        { cache: "no-store" }
+      );
 
       if (roleRes.ok) {
         const roleData = await roleRes.json();
-        role = roleData?.role ?? null;
-        setCurrentUserRole(role);
+        setCurrentUserRole(roleData?.role ?? null);
       }
 
-      // Guard
-      if (role !== "Geschäftsführung") {
-        router.push("/leads");
-        return;
-      }
+      const u = await fetch(
+        `/api/orbit/get/user-by-auth-id?auth_id=${user.id}`,
+        { cache: "no-store" }
+      );
 
-      // Applications laden
-      const res = await fetch("/api/orbit/get/applications", {
-        cache: "no-store",
-      });
+      const ud = await u.json();
+      setMyUserId(ud.id);
+
+      const res = await fetch(
+        `/api/orbit/get/applications?auth_id=${user.id}`,
+        { cache: "no-store" }
+      );
 
       if (!res.ok) {
         setApplications([]);
@@ -105,22 +114,25 @@ export default function ApplicationsPage() {
   // Helper: Alter berechnen
   // ---------------------------
   const calcAge = (birthYear: number | string | null) => {
-  if (birthYear == null) return "—";
+    if (birthYear == null) return "—";
 
-  const year = Number(birthYear);
+    const year = Number(birthYear);
 
-  if (!Number.isFinite(year)) return "—";
-  if (year < 1900 || year > new Date().getFullYear()) return "—";
+    if (!Number.isFinite(year)) return "—";
+    if (year < 1900 || year > new Date().getFullYear()) return "—";
 
-  return new Date().getFullYear() - year;
-};
-
+    return new Date().getFullYear() - year;
+  };
 
   // ---------------------------
   // Filter + Sort
   // ---------------------------
   const processedApplications = useMemo(() => {
     let out = [...applications];
+
+    if (!includeStructure && myUserId) {
+      out = out.filter((a) => a.user_id === myUserId);
+    }
 
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
@@ -146,7 +158,15 @@ export default function ApplicationsPage() {
     });
 
     return out;
-  }, [applications, searchTerm, statusFilter, sortField, sortDir]);
+  }, [
+    applications,
+    includeStructure,
+    myUserId,
+    searchTerm,
+    statusFilter,
+    sortField,
+    sortDir,
+  ]);
 
   const totalPages = Math.ceil(processedApplications.length / PAGE_SIZE);
   const paginatedApplications = processedApplications.slice(
@@ -156,7 +176,7 @@ export default function ApplicationsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, statusFilter, sortField, sortDir]);
+  }, [searchTerm, statusFilter, sortField, sortDir, includeStructure]);
 
   // ---------------------------
   return (
@@ -185,26 +205,45 @@ export default function ApplicationsPage() {
           Lead-Import
         </button>
 
-        {currentUserRole === "Geschäftsführung" && (
-          <button
-            className={`text-sm pb-2 transition ${
-              activeTab === "applications"
-                ? "text-white border-b-2 border-[#B244FF]"
-                : "text-white/40 hover:text-white/80"
-            }`}
-            onClick={() => router.push("/leads/applications")}
-          >
-            Bewerbungen
-          </button>
-        )}
+        <button
+          className={`text-sm pb-2 transition ${
+            activeTab === "applications"
+              ? "text-white border-b-2 border-[#B244FF]"
+              : "text-white/40 hover:text-white/80"
+          }`}
+          onClick={() => router.push("/leads/applications")}
+        >
+          Bewerbungen
+        </button>
       </div>
 
       {/* Overview */}
       <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-        <p className="text-white text-lg font-semibold">Bewerbungen</p>
-        <p className="text-white/50 text-sm">
-          {processedApplications.length} gefiltert · {applications.length} insgesamt
-        </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <p className="text-white text-lg font-semibold">Bewerbungen</p>
+            <p className="text-white/50 text-sm">
+              {processedApplications.length} gefiltert ·{" "}
+              {applications.length} insgesamt
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="includeStructure"
+              checked={includeStructure}
+              onChange={(e) => setIncludeStructure(e.target.checked)}
+              className="w-4 h-4 accent-[#B244FF]"
+            />
+            <label
+              htmlFor="includeStructure"
+              className="text-sm text-gray-300"
+            >
+              inklusive Struktur
+            </label>
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
@@ -269,17 +308,19 @@ export default function ApplicationsPage() {
                 <th className="px-4 py-3 text-left">Alter</th>
                 <th className="px-4 py-3 text-left">Ort</th>
                 <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-left">Betreuer</th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-white/10">
               {paginatedApplications.map((a) => (
                 <tr
-  key={a.id}
-  onClick={() => router.push(`/leads/applications/${a.id}`)}
-  className="hover:bg-white/10 transition cursor-pointer"
->
-
+                  key={a.id}
+                  onClick={() =>
+                    router.push(`/leads/applications/${a.id}`)
+                  }
+                  className="hover:bg-white/10 transition cursor-pointer"
+                >
                   <td className="px-4 py-3 text-white">{a.name}</td>
                   <td className="px-4 py-3 text-gray-300">
                     {calcAge(a.birth_year)}
@@ -289,6 +330,11 @@ export default function ApplicationsPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-200 font-semibold">
                     {a.status ?? "Neu"}
+                  </td>
+                  <td className="px-4 py-3 text-gray-300">
+                    {a.user_id === myUserId
+                      ? "Ich"
+                      : a.assigned_user?.name ?? "—"}
                   </td>
                 </tr>
               ))}

@@ -71,6 +71,7 @@ const [history, setHistory] = useState<any[]>([]);
 const LEAD_STATUSES = {
   Neu: "text-white/70",
   "Termin vereinbart": "text-green-400",
+  "No-Show": "text-orange-400",
   "Erreicht, nochmals kontaktieren": "text-yellow-400",
   "Nicht erreicht": "text-blue-400",
   "Kein Interesse": "text-red-400",
@@ -188,7 +189,12 @@ const [locationValue, setLocationValue] = useState("");
   const handleStatusSelect = (status: keyof typeof LEAD_STATUSES) => {
   setSelectedStatus(status);
 
-  if (status === "Neu" || status === "Kein Interesse") {
+  // Sofort speichern (kein Inline-Panel)
+  if (
+    status === "Neu" ||
+    status === "Kein Interesse" ||
+    status === "No-Show"
+  ) {
     updateLeadStatus(status);
     setShowInlineDetails(false);
     return;
@@ -196,6 +202,7 @@ const [locationValue, setLocationValue] = useState("");
 
   setShowInlineDetails(true);
 };
+
 
 const updateLeadStatus = async (status: keyof typeof LEAD_STATUSES) => {
   const isAppointment = status === "Termin vereinbart";

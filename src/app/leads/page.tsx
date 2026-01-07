@@ -213,18 +213,17 @@ if (roleRes.ok) {
           Lead-Import
         </button>
 
-        {currentUserRole === "Geschäftsführung" && (
-  <button
-    className={`text-sm pb-2 transition ${
-      activeTab === "applications"
-        ? "text-white border-b-2 border-[#B244FF]"
-        : "text-white/40 hover:text-white/80"
-    }`}
-    onClick={() => router.push("/leads/applications")}
-  >
-    Bewerbungen
-  </button>
-)}
+        <button
+  className={`text-sm pb-2 transition ${
+    activeTab === "applications"
+      ? "text-white border-b-2 border-[#B244FF]"
+      : "text-white/40 hover:text-white/80"
+  }`}
+  onClick={() => router.push("/leads/applications")}
+>
+  Bewerbungen
+</button>
+
 
       </div>
 
