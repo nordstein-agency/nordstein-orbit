@@ -1,5 +1,4 @@
-// Nordstein One Auth-Projekt
-
+// src/lib/supabase/authClient.ts
 import { createBrowserClient } from "@supabase/ssr";
 
 export function createSupabaseAuthClient() {

@@ -1,3 +1,4 @@
+// src/app/api/orbit/get/user-by-auth-id/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseOrbitAdmin } from "@/lib/supabase/admin";
 

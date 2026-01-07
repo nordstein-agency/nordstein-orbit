@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 
@@ -37,7 +38,7 @@ const cards = [
 
 export default function DashboardPage() {
   return (
-    <div className="min-h-screen pt-28 px-6">
+    <div className="min-h-screen pt-28 px-6 flex flex-col">
       
       {/* Heading */}
       <motion.h1
@@ -102,6 +103,26 @@ export default function DashboardPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Spacer */}
+      <div className="flex-grow" />
+
+      {/* Logo unten */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 0.6, y: 0 }}
+        transition={{ delay: 0.6, duration: 0.8 }}
+        className="flex justify-center mt-24 mb-10 pointer-events-none"
+      >
+        <Image
+          src="/logo_pink.png"
+          alt="Orbit Logo"
+          width={2000}
+          height={700}
+          className="max-w-[520px] w-full h-auto"
+          priority
+        />
+      </motion.div>
     </div>
   );
 }

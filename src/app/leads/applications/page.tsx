@@ -104,11 +104,17 @@ export default function ApplicationsPage() {
   // ---------------------------
   // Helper: Alter berechnen
   // ---------------------------
-  const calcAge = (birthYear: number | null) => {
-    if (!birthYear) return "—";
-    const currentYear = new Date().getFullYear();
-    return currentYear - birthYear;
-  };
+  const calcAge = (birthYear: number | string | null) => {
+  if (birthYear == null) return "—";
+
+  const year = Number(birthYear);
+
+  if (!Number.isFinite(year)) return "—";
+  if (year < 1900 || year > new Date().getFullYear()) return "—";
+
+  return new Date().getFullYear() - year;
+};
+
 
   // ---------------------------
   // Filter + Sort

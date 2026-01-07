@@ -1,4 +1,4 @@
-// src/app/leads/applications/%5Bid%5D/page.tsx
+// src/app/leads/applications/[id]/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -27,6 +27,26 @@ const STATUS_STYLES: Record<string, string> = {
   "Kein Interesse": "text-red-400",
 };
 
+/* =========================
+   DEFAULT HELPERS
+========================= */
+const getTodayDate = () => {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+};
+
+const getNextQuarterTime = () => {
+  const d = new Date();
+  d.setSeconds(0);
+  d.setMilliseconds(0);
+
+  const minutes = d.getMinutes();
+  const rounded = Math.ceil(minutes / 15) * 15;
+  d.setMinutes(rounded);
+
+  return d.toTimeString().slice(0, 5);
+};
+
 export default function ApplicationDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -40,16 +60,14 @@ export default function ApplicationDetailPage() {
 
   const [userId, setUserId] = useState<string | null>(null);
 
-
   // Follow-Up / Termin
   const [appointmentType, setAppointmentType] = useState("");
-  const [followUpDate, setFollowUpDate] = useState("");
-  const [followUpTime, setFollowUpTime] = useState("");
+  const [followUpDate, setFollowUpDate] = useState(getTodayDate);
+  const [followUpTime, setFollowUpTime] = useState(getNextQuarterTime);
   const [followUpDuration, setFollowUpDuration] = useState("60");
   const [followUpNote, setFollowUpNote] = useState("");
 
   const [history, setHistory] = useState<any[]>([]);
-
 
   // 📍 Ort des Termins
   const [locationType, setLocationType] = useState<
@@ -60,75 +78,63 @@ export default function ApplicationDetailPage() {
   const calcAge = (birthYear: number | null) =>
     birthYear ? new Date().getFullYear() - birthYear : "—";
 
-
-
-
-
-
-
   useEffect(() => {
-  async function load() {
-    setLoading(true);
+    async function load() {
+      setLoading(true);
 
-    // 1️⃣ Auth-User holen
-    const {
-      data: { user },
-    } = await createSupabaseAuthClient().auth.getUser();
+      const {
+        data: { user },
+      } = await createSupabaseAuthClient().auth.getUser();
 
-    if (!user) {
-      router.push("/leads");
-      return;
+      if (!user) {
+        router.push("/leads");
+        return;
+      }
+
+      const resUser = await fetch(
+        `/api/orbit/get/user-by-auth-id?auth_id=${user.id}`,
+        { cache: "no-store" }
+      );
+
+      if (!resUser.ok) {
+        console.error("User lookup failed");
+        return;
+      }
+
+      const userData = await resUser.json();
+      setUserId(userData.id);
+
+      const res = await fetch(`/api/orbit/get/applications/${id}`, {
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        router.push("/leads/applications");
+        return;
+      }
+
+      const r = await fetch(
+        `/api/orbit/get/communication-history?source=application&source_id=${id}`,
+        { cache: "no-store" }
+      );
+      if (r.ok) setHistory(await r.json());
+
+      const data = await res.json();
+      setApplication(data);
+      setSelectedStatus(data?.status ?? "Neu");
+      setLoading(false);
     }
 
-    // 2️⃣ users.id über auth_id holen
-    const resUser = await fetch(
-      `/api/orbit/get/user-by-auth-id?auth_id=${user.id}`,
-      { cache: "no-store" }
-    );
-
-    if (!resUser.ok) {
-      console.error("User lookup failed");
-      return;
-    }
-
-    const userData = await resUser.json();
-    setUserId(userData.id); // ✅ DAS ist die user_id
-
-    // 3️⃣ Bewerbung laden
-    const res = await fetch(`/api/orbit/get/applications/${id}`, {
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      router.push("/leads/applications");
-      return;
-    }
-
-    const r = await fetch(
-  `/api/orbit/get/communication-history?source=application&source_id=${id}`,
-  { cache: "no-store" }
-);
-if (r.ok) setHistory(await r.json());
-
-
-    const data = await res.json();
-    setApplication(data);
-    setSelectedStatus(data?.status ?? "Neu");
-    setLoading(false);
-  }
-
-  load();
-}, [id, router]);
-
-
-
-
-
+    load();
+  }, [id, router]);
 
   // ---------------------------
   // Status click
   // ---------------------------
   const handleStatusSelect = (status: string) => {
+    if (!followUpDate) setFollowUpDate(getTodayDate());
+    if (!followUpTime) setFollowUpTime(getNextQuarterTime());
+
     setSelectedStatus(status);
 
     if (status === "Neu" || status === "Kein Interesse") {
@@ -140,27 +146,24 @@ if (r.ok) setHistory(await r.json());
     setShowInlineDetails(true);
   };
 
-
-
   const updateStatus = async (status: string) => {
-  if (!userId) {
-    alert("User wird noch geladen – bitte 1 Sekunde warten");
-    return;
-  }
+    if (!userId) {
+      alert("User wird noch geladen – bitte 1 Sekunde warten");
+      return;
+    }
 
-  const res = await fetch(`/api/orbit/update/application-status`, {
-
+    const res = await fetch(`/api/orbit/update/application-status`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id,
         status,
-        user_id: userId, 
+        user_id: userId,
         follow_up: {
           appointmentType,
-          followUpDate,
-          followUpTime,
-          followUpDuration,
+          followUpDate: followUpDate || getTodayDate(),
+          followUpTime: followUpTime || getNextQuarterTime(),
+          followUpDuration: followUpDuration || "60",
           followUpNote,
           locationType,
           locationValue,
@@ -168,28 +171,21 @@ if (r.ok) setHistory(await r.json());
       }),
     });
 
+    const text = await res.text();
+    console.log("RAW RESPONSE:", text);
 
-// 👇 HIER IST DER ENTSCHEIDENDE TEIL
-const text = await res.text();
-console.log("RAW RESPONSE:", text);
+    let json: any = null;
+    try {
+      json = JSON.parse(text);
+    } catch {}
 
-let json: any = null;
-try {
-  json = JSON.parse(text);
-} catch {}
-
-if (!res.ok) {
-  alert("API ERROR:\n" + (json?.error ?? text));
-  return;
-}
-
+    if (!res.ok) {
+      alert("API ERROR:\n" + (json?.error ?? text));
+      return;
+    }
 
     router.push("/leads/applications");
   };
-
-  
-
-
 
   if (loading || !application) {
     return <div className="px-6 pt-20 text-white/50">Lade Bewerbung…</div>;
@@ -209,84 +205,80 @@ if (!res.ok) {
       </div>
 
       {/* Bewerbungsdetails */}
-<div className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-4">
-  <p className="text-xs uppercase tracking-widest text-white/40">
-    Bewerbungsdetails
-  </p>
-
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-white/80">
-    {application.email && (
-      <div>
-        <p className="text-white/40">E-Mail</p>
-        <p>{application.email}</p>
-      </div>
-    )}
-
-    {application.phone && (
-      <div>
-        <p className="text-white/40">Telefon</p>
-        <p>{application.phone}</p>
-      </div>
-    )}
-
-    {application.experience && (
-      <div className="md:col-span-2">
-        <p className="text-white/40">Erfahrung</p>
-        <p className="whitespace-pre-line">
-          {application.experience}
+      <div className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-4">
+        <p className="text-xs uppercase tracking-widest text-white/40">
+          Bewerbungsdetails
         </p>
-      </div>
-    )}
 
-    {application.created_at && (
-      <div>
-        <p className="text-white/40">Eingegangen am</p>
-        <p>
-          {new Date(application.created_at).toLocaleDateString(
-            "de-AT"
-          )}
-        </p>
-      </div>
-    )}
-  </div>
-</div>
-
-
-{/* Kommunikationshistorie */}
-<div className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-4">
-  <h3 className="text-white font-semibold">
-    Kommunikationshistorie
-  </h3>
-
-  {history.length === 0 ? (
-    <p className="text-white/40 text-sm">
-      Noch keine Aktivitäten vorhanden
-    </p>
-  ) : (
-    <div className="divide-y divide-white/10">
-      {history.map((item) => (
-        <div key={item.id} className="py-3">
-          <p className="text-sm text-white font-medium">
-            {item.title}
-          </p>
-
-          {item.description && (
-            <p className="text-xs text-white/50 mt-1">
-              {item.description}
-            </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-white/80">
+          {application.email && (
+            <div>
+              <p className="text-white/40">E-Mail</p>
+              <p>{application.email}</p>
+            </div>
           )}
 
-          <p className="text-xs text-white/30 mt-1">
-            {new Date(
-              item.starts_at ?? item.created_at
-            ).toLocaleString("de-AT")}
-          </p>
+          {application.phone && (
+            <div>
+              <p className="text-white/40">Telefon</p>
+              <p>{application.phone}</p>
+            </div>
+          )}
+
+          {application.experience && (
+            <div className="md:col-span-2">
+              <p className="text-white/40">Erfahrung</p>
+              <p className="whitespace-pre-line">
+                {application.experience}
+              </p>
+            </div>
+          )}
+
+          {application.created_at && (
+            <div>
+              <p className="text-white/40">Eingegangen am</p>
+              <p>
+                {new Date(application.created_at).toLocaleDateString("de-AT")}
+              </p>
+            </div>
+          )}
         </div>
-      ))}
-    </div>
-  )}
-</div>
+      </div>
 
+      {/* Kommunikationshistorie */}
+      <div className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-4">
+        <h3 className="text-white font-semibold">
+          Kommunikationshistorie
+        </h3>
+
+        {history.length === 0 ? (
+          <p className="text-white/40 text-sm">
+            Noch keine Aktivitäten vorhanden
+          </p>
+        ) : (
+          <div className="divide-y divide-white/10">
+            {history.map((item) => (
+              <div key={item.id} className="py-3">
+                <p className="text-sm text-white font-medium">
+                  {item.title}
+                </p>
+
+                {item.description && (
+                  <p className="text-xs text-white/50 mt-1">
+                    {item.description}
+                  </p>
+                )}
+
+                <p className="text-xs text-white/30 mt-1">
+                  {new Date(
+                    item.starts_at ?? item.created_at
+                  ).toLocaleString("de-AT")}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Status Cards */}
       <div>
@@ -437,12 +429,11 @@ if (!res.ok) {
               </OrbitButton>
 
               <OrbitButton
-  disabled={!userId}
-  onClick={() => updateStatus(selectedStatus)}  
->
-  Speichern
-</OrbitButton>
-
+                disabled={!userId}
+                onClick={() => updateStatus(selectedStatus)}
+              >
+                Speichern
+              </OrbitButton>
             </div>
           </div>
         </div>
