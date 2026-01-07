@@ -59,8 +59,7 @@ export default function ApplicationDetailPage() {
   const [userId, setUserId] = useState<string | null>(null);
 
   const [assigneeSaving, setAssigneeSaving] = useState(false);
-const [assigneeSaved, setAssigneeSaved] = useState(false);
-
+  const [assigneeSaved, setAssigneeSaved] = useState(false);
 
   const [appointmentType, setAppointmentType] = useState("");
   const [followUpDate, setFollowUpDate] = useState(getTodayDate);
@@ -128,57 +127,51 @@ const [assigneeSaved, setAssigneeSaved] = useState(false);
   }, [id, router]);
 
   const updateAssignee = async (newUserId: string) => {
-  if (!userId || !application) return;
+    if (!userId || !application) return;
 
-  setAssigneeSaving(true);
-  setAssigneeSaved(false);
-
-  const res = await fetch("/api/orbit/update/application-assignee", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      application_id: id,
-      new_user_id: newUserId,
-      changed_by: userId,
-    }),
-  });
-
-  setAssigneeSaving(false);
-
-  if (!res.ok) {
-    alert("Fehler beim Zuweisen");
-    return;
-  }
-
-  // ✅ 1. neuen Betreuer aus Dropdown holen
-  const newAssigneeObj = application.possible_assignees?.find(
-    (u) => u.id === newUserId
-  );
-
-  // ✅ 2. SOFORT UI aktualisieren
-  if (newAssigneeObj) {
-    setApplication({
-      ...application,
-      assigned_user: {
-        id: newAssigneeObj.id,
-        name: newAssigneeObj.name,
-      },
-    });
-  }
-
-  // ✅ 3. UX Feedback
-  setAssigneeSaved(true);
-  setShowAssigneeEdit(false);
-  setNewAssignee("");
-
-  // 🔄 4. leiser Refresh im Hintergrund
-  setTimeout(() => {
-    router.refresh();
+    setAssigneeSaving(true);
     setAssigneeSaved(false);
-  }, 600);
-};
 
+    const res = await fetch("/api/orbit/update/application-assignee", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        application_id: id,
+        new_user_id: newUserId,
+        changed_by: userId,
+      }),
+    });
 
+    setAssigneeSaving(false);
+
+    if (!res.ok) {
+      alert("Fehler beim Zuweisen");
+      return;
+    }
+
+    const newAssigneeObj = application.possible_assignees?.find(
+      (u) => u.id === newUserId
+    );
+
+    if (newAssigneeObj) {
+      setApplication({
+        ...application,
+        assigned_user: {
+          id: newAssigneeObj.id,
+          name: newAssigneeObj.name,
+        },
+      });
+    }
+
+    setAssigneeSaved(true);
+    setShowAssigneeEdit(false);
+    setNewAssignee("");
+
+    setTimeout(() => {
+      router.refresh();
+      setAssigneeSaved(false);
+    }, 600);
+  };
 
   const handleStatusSelect = (status: string) => {
     setSelectedStatus(status);
@@ -228,24 +221,40 @@ const [assigneeSaved, setAssigneeSaved] = useState(false);
 
   return (
     <div className="px-6 pt-16 pb-20 space-y-10 max-w-4xl mx-auto">
-
       <OrbitButton
-  variant="secondary"
-  onClick={() => router.back()}
-  className="w-fit"
->
-  ← Zurück
-</OrbitButton>
+        variant="secondary"
+        onClick={() => router.back()}
+        className="w-fit"
+      >
+        ← Zurück
+      </OrbitButton>
 
-      {/* Header */}
-      <div>
+      <div className="space-y-2">
         <h1 className="text-2xl font-semibold text-white">
           Bewerbung von {application.name}
         </h1>
+
         <p className="text-white/50">
           {calcAge(application.birth_year)} Jahre ·{" "}
           {application.location || "—"}
         </p>
+
+        <div className="flex flex-col gap-1 text-sm text-white/70">
+          {application.phone && (
+            <a href={`tel:${application.phone}`} className="hover:text-white">
+              📞 {application.phone}
+            </a>
+          )}
+
+          {application.email && (
+            <a
+              href={`mailto:${application.email}`}
+              className="hover:text-white"
+            >
+              ✉️ {application.email}
+            </a>
+          )}
+        </div>
 
         <p className="text-sm text-white/60 mt-1">
           Zugewiesen an:{" "}
@@ -255,9 +264,10 @@ const [assigneeSaved, setAssigneeSaved] = useState(false);
         </p>
       </div>
 
-      {/* Betreuer ändern */}
       <div className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-4">
-        <h3 className="text-white font-semibold">Betreuer: {application.assigned_user?.name ?? "—"}</h3>
+        <h3 className="text-white font-semibold">
+          Betreuer: {application.assigned_user?.name ?? "—"}
+        </h3>
 
         {!showAssigneeEdit ? (
           <OrbitButton
@@ -281,35 +291,35 @@ const [assigneeSaved, setAssigneeSaved] = useState(false);
             />
 
             <div className="flex justify-end gap-3">
-  {assigneeSaved && (
-    <span className="text-sm text-green-400 mr-auto">
-      ✓ Betreuer wurde geändert
-    </span>
-  )}
+              {assigneeSaved && (
+                <span className="text-sm text-green-400 mr-auto">
+                  ✓ Betreuer wurde geändert
+                </span>
+              )}
 
-  <OrbitButton
-    variant="secondary"
-    onClick={() => setShowAssigneeEdit(false)}
-    disabled={assigneeSaving}
-  >
-    Abbrechen
-  </OrbitButton>
+              <OrbitButton
+                variant="secondary"
+                onClick={() => setShowAssigneeEdit(false)}
+                disabled={assigneeSaving}
+              >
+                Abbrechen
+              </OrbitButton>
 
-  <OrbitButton
-    disabled={!newAssignee || assigneeSaving}
-    onClick={() => updateAssignee(newAssignee)}
-  >
-    {assigneeSaving ? "Speichern…" : "Speichern"}
-  </OrbitButton>
-</div>
-
+              <OrbitButton
+                disabled={!newAssignee || assigneeSaving}
+                onClick={() => updateAssignee(newAssignee)}
+              >
+                {assigneeSaving ? "Speichern…" : "Speichern"}
+              </OrbitButton>
+            </div>
           </>
         )}
       </div>
 
-      {/* Kommunikationshistorie */}
       <div className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-4">
-        <h3 className="text-white font-semibold">Kommunikationshistorie</h3>
+        <h3 className="text-white font-semibold">
+          Kommunikationshistorie
+        </h3>
 
         {history.length === 0 ? (
           <p className="text-white/40 text-sm">
@@ -319,7 +329,9 @@ const [assigneeSaved, setAssigneeSaved] = useState(false);
           <div className="divide-y divide-white/10">
             {history.map((item) => (
               <div key={item.id} className="py-3">
-                <p className="text-sm text-white font-medium">{item.title}</p>
+                <p className="text-sm text-white font-medium">
+                  {item.title}
+                </p>
                 {item.description && (
                   <p className="text-xs text-white/50 mt-1">
                     {item.description}
@@ -336,7 +348,6 @@ const [assigneeSaved, setAssigneeSaved] = useState(false);
         )}
       </div>
 
-      {/* Status */}
       <div>
         <h2 className="text-lg text-white font-semibold mb-4">
           Status der Bewerbung
@@ -356,7 +367,9 @@ const [assigneeSaved, setAssigneeSaved] = useState(false);
               <p className={`text-sm font-semibold ${STATUS_STYLES[status]}`}>
                 {status}
               </p>
-              <p className="text-xs text-white/40 mt-1">Status setzen</p>
+              <p className="text-xs text-white/40 mt-1">
+                Status setzen
+              </p>
             </button>
           ))}
         </div>
@@ -386,7 +399,10 @@ const [assigneeSaved, setAssigneeSaved] = useState(false);
                       label: "Verkaufsgespräch",
                       value: "Verkaufsgespräch",
                     },
-                    { label: "Veranstaltung", value: "Veranstaltung" },
+                    {
+                      label: "Veranstaltung",
+                      value: "Veranstaltung",
+                    },
                   ]}
                   onChange={setAppointmentType}
                 />
@@ -395,13 +411,17 @@ const [assigneeSaved, setAssigneeSaved] = useState(false);
                   <input
                     type="date"
                     value={followUpDate}
-                    onChange={(e) => setFollowUpDate(e.target.value)}
+                    onChange={(e) =>
+                      setFollowUpDate(e.target.value)
+                    }
                     className="w-full px-4 py-2 rounded-xl bg-black/40 border border-white/10 text-white"
                   />
                   <input
                     type="time"
                     value={followUpTime}
-                    onChange={(e) => setFollowUpTime(e.target.value)}
+                    onChange={(e) =>
+                      setFollowUpTime(e.target.value)
+                    }
                     className="w-full px-4 py-2 rounded-xl bg-black/40 border border-white/10 text-white"
                   />
                 </div>
@@ -422,14 +442,18 @@ const [assigneeSaved, setAssigneeSaved] = useState(false);
                 <input
                   type="date"
                   value={followUpDate}
-                  onChange={(e) => setFollowUpDate(e.target.value)}
+                  onChange={(e) =>
+                    setFollowUpDate(e.target.value)
+                  }
                   className="w-full px-4 py-2 rounded-xl bg-black/40 border border-white/10 text-white"
                 />
 
                 <textarea
                   placeholder="Notiz"
                   value={followUpNote}
-                  onChange={(e) => setFollowUpNote(e.target.value)}
+                  onChange={(e) =>
+                    setFollowUpNote(e.target.value)
+                  }
                   className="w-full px-4 py-2 rounded-xl bg-black/40 border border-white/10 text-white"
                 />
               </>
@@ -443,7 +467,9 @@ const [assigneeSaved, setAssigneeSaved] = useState(false);
                 Abbrechen
               </OrbitButton>
 
-              <OrbitButton onClick={() => updateStatus(selectedStatus)}>
+              <OrbitButton
+                onClick={() => updateStatus(selectedStatus)}
+              >
                 Speichern
               </OrbitButton>
             </div>
