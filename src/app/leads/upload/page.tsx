@@ -1,10 +1,10 @@
+// leads/upload/page.tsx
 "use client";
 
 import { useState, useMemo } from "react";
 import OrbitButton from "@/components/orbit/OrbitButton";
 import { OrbitDropzone } from "@/components/orbit/OrbitDropzone";
 import { parseLeadFile, mapToLead } from "@/lib/leadImport";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 
@@ -39,20 +39,18 @@ export default function LeadUploadPage() {
   const [rows, setRows] = useState<PreviewRow[]>([]);
   const [loading, setLoading] = useState(false);
 
-const [page, setPage] = useState(1);
-const pageSize = 20;
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
 
-const totalPages = Math.ceil(rows.length / pageSize);
+  const totalPages = Math.ceil(rows.length / pageSize);
 
-const paginatedRows = useMemo(() => {
-  const start = (page - 1) * pageSize;
-  return rows.slice(start, start + pageSize);
-}, [rows, page]);
-
+  const paginatedRows = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return rows.slice(start, start + pageSize);
+  }, [rows, page]);
 
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const supabase = createSupabaseBrowserClient();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -78,8 +76,6 @@ const paginatedRows = useMemo(() => {
     setUploadError(null);
     setFileName(file.name);
     setRows([]);
-   
-
 
     try {
       const rawRows = await parseLeadFile(file);
@@ -143,7 +139,6 @@ const paginatedRows = useMemo(() => {
 
       setRows(mapped);
       setPage(1);
-
     } catch (err: any) {
       console.error(err);
       setUploadError(err?.message ?? "Fehler beim Einlesen der Datei.");
@@ -151,7 +146,7 @@ const paginatedRows = useMemo(() => {
   }
 
   // ------------------------------
-  // Upload nach Supabase
+  // Upload über API (statt direkt Supabase im Frontend)
   // ------------------------------
   async function upload() {
     setUploadError(null);
@@ -164,27 +159,27 @@ const paginatedRows = useMemo(() => {
     setLoading(true);
 
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError) throw userError;
-      if (!user) throw new Error("Kein Benutzer eingeloggt.");
-
+      // Preview-Felder entfernen
       const payload = validRows.map(
-        ({ _rowIndex, _errors, _isDuplicate, ...lead }) => ({
-          ...lead,
-          owner: user.id,
-        })
+        ({ _rowIndex, _errors, _isDuplicate, ...lead }) => lead
       );
 
       const BATCH_SIZE = 300;
 
       for (let i = 0; i < payload.length; i += BATCH_SIZE) {
         const chunk = payload.slice(i, i + BATCH_SIZE);
-        const { error } = await supabase.from("leads").insert(chunk);
-        if (error) throw error;
+
+        const res = await fetch("/api/orbit/upload/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ leads: chunk }),
+        });
+
+        const json = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          throw new Error(json?.error ?? "Fehler beim Upload.");
+        }
       }
 
       alert(`Import erfolgreich: ${payload.length} Leads wurden angelegt.`);
@@ -306,10 +301,14 @@ const paginatedRows = useMemo(() => {
                       {row._rowIndex}
                     </td>
 
-                    <td className="px-3 py-2">{safeStr(row.company_name) || "–"}</td>
+                    <td className="px-3 py-2">
+                      {safeStr(row.company_name) || "–"}
+                    </td>
                     <td className="px-3 py-2">{safeStr(row.website) || "–"}</td>
                     <td className="px-3 py-2">{safeStr(row.email) || "–"}</td>
-                    <td className="px-3 py-2">{safeStr(row.industry) || "–"}</td>
+                    <td className="px-3 py-2">
+                      {safeStr(row.industry) || "–"}
+                    </td>
                     <td className="px-3 py-2">{safeStr(row.region) || "–"}</td>
 
                     <td className="px-3 py-2 text-xs">
@@ -329,31 +328,30 @@ const paginatedRows = useMemo(() => {
             </table>
           </div>
 
-                {/* Pagination */}
-<div className="flex items-center justify-between py-3 text-sm text-white/70">
-  <div>
-    Seite {page} / {totalPages}
-  </div>
+          {/* Pagination */}
+          <div className="flex items-center justify-between py-3 text-sm text-white/70">
+            <div>
+              Seite {page} / {totalPages}
+            </div>
 
-  <div className="flex items-center gap-2">
-    <button
-      onClick={() => setPage((p) => Math.max(1, p - 1))}
-      disabled={page === 1}
-      className="px-3 py-1 rounded bg-white/10 disabled:opacity-30"
-    >
-      ← Zurück
-    </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-3 py-1 rounded bg-white/10 disabled:opacity-30"
+              >
+                ← Zurück
+              </button>
 
-    <button
-      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-      disabled={page === totalPages}
-      className="px-3 py-1 rounded bg-white/10 disabled:opacity-30"
-    >
-      Weiter →
-    </button>
-  </div>
-</div>
-
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-3 py-1 rounded bg-white/10 disabled:opacity-30"
+              >
+                Weiter →
+              </button>
+            </div>
+          </div>
 
           {rows.length > 50 && (
             <p className="text-xs text-white/50">
