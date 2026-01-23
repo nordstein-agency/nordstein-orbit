@@ -14,7 +14,8 @@ export default function LogoutPage() {
   useEffect(() => {
     const doLogout = async () => {
       await supabase.auth.signOut();
-      router.push("/login");
+window.location.href = "/login";
+
     };
 
     doLogout();

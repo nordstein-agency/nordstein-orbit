@@ -31,7 +31,8 @@ export default function LoginPage() {
       setMessage(error.message);
       setLoading(false);
     } else {
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
+
     }
   };
 
